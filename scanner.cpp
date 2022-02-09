@@ -8,8 +8,6 @@
 #include <map>
 #include <cmath>
 #define DEBUG       cerr<<"\n/n>>>I'm Here<<</n"<<endl;
-#define what_is(x) cerr << #x << " is " << x << endl;
-#define pf push_front
 using namespace std;
 
 ifstream fin;       // The input file stream object used to get the content of the file
