@@ -1,55 +1,158 @@
-#include <stdio.h>
-#define TOTAL_STATES 2
-#define FINAL_STATES 1
-#define ALPHABET_CHARCTERS 2
-#define UNKNOWN_SYMBOL_ERR 0
-#define NOT_REACHED_FINAL_STATE 1
-#define REACHED_FINAL_STATE 2
-enum DFA_STATES{q0,q1};
-enum input{a,b};
-int Accepted_states[FINAL_STATES]={q1};
-char alphabet[ALPHABET_CHARCTERS]={'a','b'};
-int Transition_Table[TOTAL_STATES][ALPHABET_CHARCTERS];
-int Current_state=q0;
-void DefineDFA()
-{
-    Transition_Table[q0][a] = q1;
-    Transition_Table[q0][b] = q0;
-    Transition_Table[q1][a] = q1;
-    Transition_Table[q1][b] = q0;
-}
-int DFA(char current_symbol)
-{
-int i,pos;
-    for(pos=0;pos<ALPHABET_CHARCTERS; pos++)
-        if(current_symbol==alphabet[pos])   
-            break;//stops if any character other than a or b
-    if(pos==ALPHABET_CHARCTERS)
-         return UNKNOWN_SYMBOL_ERR;
-    for(i=0;i<FINAL_STATES;i++)
-        if((Current_state=Transition_Table[Current_state][pos]) == Accepted_states[i])
-            return REACHED_FINAL_STATE;
-    return NOT_REACHED_FINAL_STATE;
-}
-int main(void)
-{
-    char current_symbol;
-    int result;
- 
-    DefineDFA();    //Fill transition table
- 
-    printf("Enter a string with 'a' s and 'b's:\n Press Enter Key to stop\n");
- 
- 
-    while((current_symbol=getchar())!= '\n')
-        if((result= DFA(current_symbol))==UNKNOWN_SYMBOL_ERR)
-            break;
-    switch (result) {
-    case UNKNOWN_SYMBOL_ERR:printf("Unknown Symbol %c",  current_symbol); break;
-    case NOT_REACHED_FINAL_STATE:printf("Not accepted"); break;
-    case REACHED_FINAL_STATE:printf("Accepted");break;
-    default: printf("Unknown Error");
+#include <iostream>
+#include <fstream>
+#include <cstring>
+#include <cctype>
+#include <vector>
+#include <string>
+#include <algorithm>
+#include <map>
+using namespace std;
+
+ifstream fin;       // The input file stream object used to get the content of the file
+string line = "";   // The current line being read
+int linenumber = 0; // The line number
+
+vector<string> Keywords = {"int", "string", "char", "float", "bool", "tuple", "list", "proc", "void", "if", "elif", "else", "loop", "break", "continue", "return", "and", "is", "nor", "xor", "nand", "or", "true", "True", "tRue", "TRue", "trUe", "TrUe", "tRUe", "TRUe", "truE", "TruE", "tRuE", "TRuE", "trUE", "TrUE", "tRUE", "TRUE", "false", "False", "fAlse", "FAlse", "faLse", "FaLse", "fALse", "FALse", "falSe", "FalSe", "fAlSe", "FAlSe", "faLSe", "FaLSe", "fALSe", "FALSe", "falsE", "FalsE", "fAlsE", "FAlsE", "faLsE", "FaLsE", "fALsE", "FALsE", "falSE", "FalSE", "fAlSE", "FAlSE", "faLSE", "FaLSE", "fALSE", "FALSE"};
+vector<char> Symbols = {'#','~','*','/','%',',',';','!','&','|','^','=','<','>','\\','}','{','[',']','(',')','_', '.' ,'"','\''};
+map<string, int> token_map;
+
+struct Token {
+    int token_number;
+    string token_name;
+    int token_linenumber;
+    Token(int tn = -1, string tname = "", int ln = -1){
+        token_number = tn; token_name = tname; token_linenumber = ln;
     }
-    printf("\n\n\n");
+};
+
+bool isAlphabet(char ch);
+bool isNumber(char ch);
+bool isSymbol(char ch);
+bool isKeyword(string s);
+bool numeric_literals();
+
+// A function which get the next char while removing whitespaces
+char nextChar();
+
+// A boolean function for checking if the next lexeme is a varname or not
+// bool varname_token(string thingy){
+//     char *ptr = thingy;
+//     char ch = *ptr;
+//     if(!isAlphabet(ch)) return false;
+
+//     while(ptr != NULL){
+//         ch = *ptr;
+//         if(!isAlphabet(ch) && !isNumber(ch)) break;
+//         ptr++;
+//     }
+//     return true;
+// }
+
+Token alphanumeric(char ch){
+    string str = " ", key = "";
+    
+    str += ch;
+    ch = nextChar();
+
+
+    Token t ;//= Token(-1, "", -1);
+    if(isKeyword(str)){ 
+        t = Token(token_map[str], str, linenumber);    
+    }
+    else{
+        t = Token(token_map["string"], str, linenumber);
+    }
+    return t;
+}
+
+
+bool scanner(){
+    vector<Token> token_list;
+    string line = "";
+    char ch;
+    while(ch != -1) {
+        ch = nextChar();
+        // if(ch != -1) cout << ch << "_";
+        // struct Token t;
+        if(ch=='0') numeric_literals();
+        else if(ch=='.'){}
+        else if(isNumber(ch)){}
+        else if(isSymbol(ch)) {}
+        else if(isAlphabet(ch)) token_list.push_back(alphanumeric(ch));
+        else if(ch == '\'') {}
+        else if(ch == '\"') {}
+        else if(ch != -1) {cout <<"\n#### Something unexpected has been encountered. Inconvience is regretted ####\n"; return false;}
+    }
+    
+
+    cout << "\nThe begining of the end\n";
+    for(auto t : token_list){
+        cout << "Token " << t.token_number;
+        cout << ", string " << t.token_name;
+        cout << ", line number " << t.token_linenumber;
+        cout << "\n";
+    }
+    cout << "\nThe end\n";
+
+    return true;
+}
+
+int main(int argc, char *argv[]) {
+
+    srand(16);
+    for(auto el : Keywords) token_map[el] = rand();
+
+	fin.open(argv[1]);
+    cout <<"The scanning is commencing... \n";
+    if(!scanner()) cout << "Lexical error !@#$%^%^%$&$*&";
+    fin.close();
+
     return 0;
+}
+
+
+
+// FUNCTION DEFINATIONS 
+
+bool isAlphabet(char ch){ 
+    return ((ch == '_') || ('a' <= ch && ch <= 'z') || ('A' <= ch && ch <= 'Z'));
+}
+
+bool isNumber(char ch) { 
+    return ('0' <= ch && ch <= '9');
+}
+
+bool isSymbol(char ch){
+    return find(Symbols.begin(), Symbols.end(), ch) != Symbols.end();
+}
+
+bool isKeyword(string s){
+    return find(Keywords.begin(), Keywords.end(), s) != Keywords.end();
+}
+
+bool numeric_literals(){
+    return true;
+}
+
+// A function which get the next char while removing whitespaces
+char nextChar() {
+	char ch;
+    
+	if(line == "") {
+		if(!fin.eof()) {
+            getline(fin, line);
+            linenumber++;
+            // cout << line << endl;
+        }
+		else return -1;
+	}
+
+	do {
+		ch = line[0]; 
+        if( line == "" ) return nextChar();   
+		else line.erase(0, 1);
+    }
+	while(isspace(ch));
+
+    return ch;
 }
