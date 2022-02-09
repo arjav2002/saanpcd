@@ -1,0 +1,8 @@
+a5abcfd            
+aba cde f
+abc
+a09
+afd
+99302
+
+// Figure out the algorithym on paper
