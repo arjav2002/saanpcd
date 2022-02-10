@@ -1,9 +1,7 @@
-a5abcfd            
-aba cde f
+a5abcfd;          
+ba cde d
 
-a=b+c;
+a= b# c;
 993.002
 float
-
-8
 
