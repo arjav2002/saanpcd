@@ -184,12 +184,7 @@ int main(int argc, char *argv[]) {
     return 0;
 }
 
-
-<<<<<<< HEAD
 // FUNCTION DEFINITIONS 
-=======
-// FUNCTION DEFINITIONS
->>>>>>> 3f973aa3298fa38d03f7e60e05f553f47f03d7e8
 
 bool isAlphabet(char ch){ 
     return ((ch == '_') || ('a' <= ch && ch <= 'z') || ('A' <= ch && ch <= 'Z'));
