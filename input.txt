@@ -25,3 +25,8 @@ int float char string
 = ! "?"
 
 "\""
+
+//non integers
+0
+forty 0
+0.4595

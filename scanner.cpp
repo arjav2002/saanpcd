@@ -48,7 +48,7 @@ Token hex_literal(char ch);
 Token oct_literal(char ch);
 Token float_literal(long double num, char ch);
 Token numeric_literal(char ch);
-Token non_decimal_integers(char ch);
+Token non_integers(char ch);
 Token symbol(char ch);
 Token alphanumeric(char ch); // Extracts a lexeme which could be a varname or keyword
 Token char_literal();
@@ -63,7 +63,7 @@ bool scanner(){
     while(!EXIT_FLAG && !ERROR_FLAG) {
         // cout << "At line " << linenumber << " : " << ch << " \n";
         
-        if(ch=='0') non_decimal_integers(ch);
+        if(ch=='0') token_list.push_back(non_integers(ch));
         else if(ch == '/') comment();  
         else if(ch=='.') token_list.push_back(float_literal(0, ch));
         else if(ch == '\'') token_list.push_back(char_literal());
@@ -103,7 +103,7 @@ int main(int argc, char *argv[]) {
         cout << "Lexical error !@#$%^%^%$&$*&\n";
         cout << ERROR_LOG;
     }
-  
+
     fin.close();
 
     return 0;
@@ -142,22 +142,28 @@ char nextChar(bool skip_whitespace) {
 
 Token hex_literal(char ch){
     string str = "0x";
+    int ln = linenumber;
     ch = nextChar(false);
-    while(isNumber(ch) || ('a'<=ch && ch<='f')){
+    while(ln==linenumber && (isNumber(ch) || ('a'<=ch && ch<='f') || ('A'<=ch && ch<='F'))){
         str+=ch;
         ch = nextChar(false);
     }
-    return Token(token_map["int"], str, linenumber);
+    // if(isSymbol(ch) || isspace(ch)) 
+        ptr--;
+    return Token(token_map["int"], str, ln);
 }
 
 Token oct_literal(char ch){
     string str = "0";
+    str += ch;
+    int ln = linenumber;
     ch = nextChar(false);
-    while('0' <=ch && ch <= '7'){
+    while(ln==linenumber && ('0' <=ch && ch <= '7')){
         str+=ch;
         ch = nextChar(false);
     }
-    return Token(token_map["int"], str, linenumber);
+    ptr--;
+    return Token(token_map["int"], str, ln);
 }
 
 Token float_literal(long double num, char ch){
@@ -182,12 +188,16 @@ Token numeric_literal(char ch){
     return Token(token_map["int"], to_string(num), ln);;
 }
 
-Token non_decimal_integers(char ch){
+Token non_integers(char ch){
+    int ln=linenumber;
     ch = nextChar(false);
-    if(ch=='.') return float_literal(0, ch);
+    if(ln!=linenumber || ch==' '){
+        ptr--;
+        return Token(token_map["int"], to_string(0), ln);
+    }
+    else if(ch=='.') return float_literal(0, ch);
     else if(ch=='x') return hex_literal(ch);
     else if(isNumber(ch)) return oct_literal(ch);
-    else return Token(token_map["int"], to_string(0), linenumber);
 }
 
 Token symbol(char ch){
