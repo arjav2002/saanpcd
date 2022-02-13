@@ -1,7 +1,27 @@
-a5abcfd;          
-ba cde d
+// Testing Comments
+/*
+123
+abc 
++&^%$
+*/
 
-a= b# c;
-993.002
-float
+// Varname 
+abc def ghi
+jkl mno pqr
 
+// Char literals
+'a' '\n'
+
+// String literals
+"String + \" 3th081y-081yhtiolqkhn0tgi13 " "Char" 
+
+// Numbers
+123 345.5 .003
+
+// Keywords
+int float char string
+
+// Symbols
+= ! "?"
+
+"\""

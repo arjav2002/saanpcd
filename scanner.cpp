@@ -10,16 +10,18 @@
 #define DEBUG       cerr<<"\n/n>>>I'm Here<<</n"<<endl;
 using namespace std;
 
+ofstream fout;      // The file stream object used to append to the file
 ifstream fin;       // The input file stream object used to get the content of the file
 string line = "";   // The current line being read
 int ptr = 0;      // The char pointing at the current char being read in the line
 int linenumber = 0; // The line number in the input file
-bool EXIT_FLAG = false; // A flag for an error in scanning 
-string EXIT_LOG = ""; // Logged statment for an error in scanning 
 
+bool EXIT_FLAG = false; // A flag for an end of file reached in scanning 
+bool ERROR_FLAG = false; // A flag for an error in scanning 
+string ERROR_LOG = ""; // Logged statment for an error in scanning 
 
 vector<string> Keywords = {"int", "string", "char", "float", "bool", "tuple", "list", "proc", "void", "if", "elif", "else", "loop", "break", "continue", "return", "and", "is", "nor", "xor", "nand", "or", "true", "True", "tRue", "TRue", "trUe", "TrUe", "tRUe", "TRUe", "truE", "TruE", "tRuE", "TRuE", "trUE", "TrUE", "tRUE", "TRUE", "false", "False", "fAlse", "FAlse", "faLse", "FaLse", "fALse", "FALse", "falSe", "FalSe", "fAlSe", "FAlSe", "faLSe", "FaLSe", "fALSe", "FALSe", "falsE", "FalsE", "fAlsE", "FAlsE", "faLsE", "FaLsE", "fALsE", "FALsE", "falSE", "FalSE", "fAlSE", "FAlSE", "faLSE", "FaLSE", "fALSE", "FALSE"};
-vector<char> Symbols = {'#','~','*','/','%',',',';','!','&','|','^','=','<','>','\\','}','{','[',']','(',')','_', '.' ,'"','\''};
+vector<char> Symbols = {'#','~','*','/','%',',',';','!','&','|','^','=','<','>','\\','}','{','[',']','(',')','_', '.'};
 map<string, int> token_map;
 
 struct Token {
@@ -30,7 +32,6 @@ struct Token {
         token_number = tn; token_name = tname; token_linenumber = ln;
     }
 };
-
 bool isAlphabet(char ch);
 bool isNumber(char ch);
 bool isSymbol(char ch);
@@ -38,7 +39,7 @@ bool isKeyword(string s);
 void lexical_error(string error);
 
 // A function which get the next char while removing whitespaces
-char nextChar(bool ignore_space = true);
+char nextChar(bool skip_whitespace = true);
 bool nextLine();
 
 Token hex_literal(char ch){
@@ -63,23 +64,24 @@ Token oct_literal(char ch){
 
 Token float_literal(long double num, char ch){
     ch = nextChar(false);
+    int ln = linenumber;
     for(int i = 1; isNumber(ch); i++){
         num += ((long double)ch - '0') / pow(10, i);
         ch = nextChar(false);
     }
-
-    return Token(token_map["float"], to_string(num), linenumber);
+    ptr--;
+    return Token(token_map["float"], to_string(num), ln);
 }
 
 Token numeric_literal(char ch){
-    long long num = 0;
+    long long num = 0, ln = linenumber;
     while(isNumber(ch)){
         num = num*10 + (long long)ch - '0';
         ch = nextChar(false);
         if(ch == '.') return float_literal((long double)num, ch);
     }
-
-    return Token(token_map["int"], to_string(num), linenumber);;
+    ptr--;
+    return Token(token_map["int"], to_string(num), ln);;
 }
 
 Token non_decimal_integers(char ch){
@@ -90,21 +92,24 @@ Token non_decimal_integers(char ch){
     else return Token(token_map["int"], to_string(0), linenumber);
 }
 
-
 Token symbol(char ch){
     string str = string(1, ch);
     return Token(token_map[str], str, linenumber);
 }
 
+// Extracts a lexeme which could be a varname or keyword
 Token alphanumeric(char ch){
     string str = "";
     int ln = linenumber;
+
     while(isAlphabet(ch)||isNumber(ch)){
         str += ch;
         ch = nextChar(false);
+        if(ch == -1 || linenumber != ln) break;
     }
-    // ptr is being decremented as alphanumeric goes ahead of its range
-    if(ptr > 0) ptr--;
+
+    // ptr is being decremented as alphanumeric goes ahead of its range 
+    ptr--;
 
     if(isKeyword(str))
         return Token(token_map[str], str, ln);    
@@ -112,47 +117,86 @@ Token alphanumeric(char ch){
         return Token(token_map["string"], str, ln);
 }
 
-/*
-char comment(){
+Token char_literal(){
     char ch = nextChar(false);
-    if(ch == '/'){
-        while(ch != '\n')
-            ch = nextChar(false);
-        return 'Y';
-    }
-    else if(ch == '*'){
-        while(ch != -1){
-            while(ch != '*')
-                ch = nextChar(false);
-            ch = nextChar(false);
-            if(ch == '/') return 'Y';    
+    string char_lit = "";
+    if(ch == '\\') {
+        char_lit += '\\';
+        ch = nextChar(false);
+        if(nextChar(false) != '\'') {
+            ERROR_LOG = "Invalid Char literal";
         }
     }
-    return -1;
+    else if(nextChar(false) != '\'') {
+        ERROR_LOG = "Invalid Char literal";
+    }
+    
+    return Token(token_map["char"], char_lit + ch, linenumber);
 }
-*/
+
+Token string_literal(){
+    string str = "";
+    char ch = nextChar(false);
+    int ln = linenumber;
+    while(ch != '\"'){
+        str += ch;
+        if(ch == '\\') {
+            // get the escaped character
+            str += nextChar(false);
+        }
+        ch = nextChar(false);
+        if(ln != linenumber || EXIT_FLAG || ERROR_FLAG) {
+            lexical_error("Invalid String literal");
+            break;
+        }
+    }
+    return Token(token_map["string"], str, linenumber);
+}
+
+void comment(){
+    char ch = nextChar(false);
+    if(EXIT_FLAG || ERROR_FLAG) ERROR_LOG = "Single / found";
+    else if(ch == '/'){
+        ptr = line.length();
+        return;
+    }
+    else if(ch == '*'){
+        char prev = -1;
+        while(true){
+            if(ch == '/' && prev == '*') return;
+            prev = ch;
+            ch = nextChar(false);
+            if(EXIT_FLAG || ERROR_FLAG){ ERROR_LOG = "Multi-line comment does not finish"; break;}
+        }
+    }
+    else {ERROR_FLAG = true; ERROR_LOG = "Single / found";}; 
+    return;
+}
+
 bool scanner(){
     vector<Token> token_list;
     string line = "";
     char ch = nextChar();
-    while(ch != -1 && EXIT_FLAG == false) {
-        cout << "At line " << linenumber << " : " << ch << " \n";
+
+    while(!EXIT_FLAG && !ERROR_FLAG) {
+        // cout << "At line " << linenumber << " : " << ch << " \n";
         
         if(ch=='0') non_decimal_integers(ch);
-        // else if(ch == '/') ch = comment();  
+        else if(ch == '/') comment();  
         else if(ch=='.') token_list.push_back(float_literal(0, ch));
+        else if(ch == '\'') token_list.push_back(char_literal());
+        else if(ch == '\"') token_list.push_back(string_literal());
         else if(isNumber(ch)) token_list.push_back(numeric_literal(ch));
         else if(isSymbol(ch)) token_list.push_back(symbol(ch));
         else if(isAlphabet(ch)) token_list.push_back(alphanumeric(ch));
-        // else if(ch == '\'') {}
-        // else if(ch == '\"') {}
-        else if(ch != -1) {cout <<"<<" << ch << ">>\n#### Something unexpected has been encountered. Inconvience is regretted ####\n"; return false;}
+        else if(ch == -1) {cout <<"<<" << ch << ">>\n#### Something unexpected has been encountered. Inconvience is regretted ####\n"; return false;}
         
-        ch = nextChar();
+        ch = nextChar(false);
     }
     
-    if(EXIT_FLAG) return false;
-    cout << "\nThe begining of the end\n\n";
+    if(ERROR_FLAG) return false;
+
+    cout << "\nScanning Completed.\nThe begining of the end\n\n";
     for(auto t : token_list){
         cout << "Token " << t.token_number;
         cout << ", string " << t.token_name;
@@ -170,14 +214,14 @@ int main(int argc, char *argv[]) {
     for(auto el : Keywords) token_map[el] = rand();
     for(auto el : Symbols) token_map[string(1, el)] = rand();
 
-	fin.open(argv[1]);
+    fin.open(argv[1]);
     
     cout <<"The scanning is commencing... " << endl;
     if(!scanner()) {
         cout << "Lexical error !@#$%^%^%$&$*&\n";
-        cout << EXIT_LOG;
+        cout << ERROR_LOG;
     }
-    // while(nextLine());
+  
     fin.close();
 
     return 0;
@@ -202,34 +246,34 @@ bool isKeyword(string s){
     return find(Keywords.begin(), Keywords.end(), s) != Keywords.end();
 }
 
-// A function which get the next line in the input 
-bool nextLine() {
-    if(fin.eof()) return false;
+void lexical_error(string error){
+    EXIT_FLAG = ERROR_FLAG = true;
+    ERROR_LOG = error + " at line number " + to_string(linenumber);
+}
 
-    getline(fin, line);
+bool nextLine() {
+    if(!getline(fin, line)) return false;
     ptr = 0;
     linenumber++;
-    // cout << line << endl;
-    return true;
+
+    // If the line is empty, skipping it
+    return (line.length() > 0) ? true : nextLine();
 }
 
-char nextChar(bool ignore_space) {
-    if(fin.eof()) return -1;
-    
+char nextChar(bool skip_whitespace) {
+    ptr++; // To move to the next char to be read
+
     if(ptr >= line.length()){
-        if(!nextLine() || !ignore_space) return -1;
-    }
-    if(ignore_space) 
-        while(isspace(line[ptr])){
-            if(ptr >= line.length()) nextChar();
-            else ptr++;
+        if(!nextLine()) {
+            EXIT_FLAG = true;
+            return -1;
         }
+    }
 
-    // In the case where an empty line is there in
-    return (line[ptr] != '\0') ? line[ptr++] : nextChar();
-}
-
-void lexical_error(string error){
-    EXIT_FLAG = true;
-    EXIT_LOG = error + " at line number " + to_string(linenumber);
+    if(skip_whitespace){
+        while(ptr < line.length() && isspace(line[ptr])) ptr++;
+        if(ptr == line.length()) return nextChar();
+    }
+    
+    return line[ptr];
 }
