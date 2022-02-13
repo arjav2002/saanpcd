@@ -13,6 +13,7 @@ using namespace std;
 
 ofstream fout;      // The file stream object used to append to the file
 ifstream fin;       // The input file stream object used to get the content of the file
+
 string line = "";   // The current line being read
 int ptr = 0;      // The char pointing at the current char being read in the line
 int linenumber = 0; // The line number in the input file
@@ -33,15 +34,111 @@ struct Token {
         token_number = tn; token_name = tname; token_linenumber = ln;
     }
 };
+
 bool isAlphabet(char ch);
 bool isNumber(char ch);
 bool isSymbol(char ch);
 bool isKeyword(string s);
-void lexical_error(string error);
 
-// A function which get the next char while removing whitespaces
+void lexical_error(string error);
 char nextChar(bool skip_whitespace = true);
 bool nextLine();
+
+Token hex_literal(char ch);
+Token oct_literal(char ch);
+Token float_literal(long double num, char ch);
+Token numeric_literal(char ch);
+Token non_decimal_integers(char ch);
+Token symbol(char ch);
+Token alphanumeric(char ch); // Extracts a lexeme which could be a varname or keyword
+Token char_literal();
+Token string_literal();
+void comment();
+
+bool scanner(){
+    vector<Token> token_list;
+    string line = "";
+    char ch = nextChar();
+
+    while(!EXIT_FLAG && !ERROR_FLAG) {
+        // cout << "At line " << linenumber << " : " << ch << " \n";
+        
+        if(ch=='0') non_decimal_integers(ch);
+        else if(ch == '/') comment();  
+        else if(ch=='.') token_list.push_back(float_literal(0, ch));
+        else if(ch == '\'') token_list.push_back(char_literal());
+        else if(ch == '\"') token_list.push_back(string_literal());
+        else if(isNumber(ch)) token_list.push_back(numeric_literal(ch));
+        else if(isSymbol(ch)) token_list.push_back(symbol(ch));
+        else if(isAlphabet(ch)) token_list.push_back(alphanumeric(ch));
+        else if(ch == -1) {cout <<"<<" << ch << ">>\n#### Something unexpected has been encountered. Inconvience is regretted ####\n"; return false;}
+        
+        ch = nextChar(false);
+    }
+    
+    if(ERROR_FLAG) return false;
+
+    cout << "\nScanning Completed.\nThe begining of the end\n\n";
+    for(auto t : token_list){
+        cout << "Token " << t.token_number;
+        cout << ", string " << t.token_name;
+        cout << ", line number " << t.token_linenumber;
+        cout << "\n";
+    }
+    cout << "\nThe end\n";
+
+    return true;
+}
+
+int main(int argc, char *argv[]) {
+
+    srand(16);
+    for(auto el : Keywords) token_map[el] = rand();
+    for(auto el : Symbols) token_map[string(1, el)] = rand();
+
+    fin.open(argv[1]);
+    
+    cout <<"The scanning is commencing... " << endl;
+    if(!scanner()) {
+        cout << "Lexical error !@#$%^%^%$&$*&\n";
+        cout << ERROR_LOG;
+    }
+  
+    fin.close();
+
+    return 0;
+}
+
+bool nextLine() {
+    if(!getline(fin, line)) return false;
+    ptr = 0;
+    linenumber++;
+
+    // If the line is empty, skipping it
+    return (line.length() > 0) ? true : nextLine();
+}
+
+char nextChar(bool skip_whitespace) {
+    ptr++; // To move to the next char to be read
+
+    if(ptr >= line.length()){
+        if(!nextLine()) {
+            EXIT_FLAG = true;
+            return -1;
+        }
+    }
+
+    if(skip_whitespace){
+        while(ptr < line.length() && isspace(line[ptr])) ptr++;
+        if(ptr == line.length()) return nextChar();
+    }
+    
+    return line[ptr];
+}
+
+
+
+// TOKEN EXTRACTION FUNCTION DEFINITIONS 
 
 Token hex_literal(char ch){
     string str = "0x";
@@ -174,61 +271,10 @@ void comment(){
     return;
 }
 
-bool scanner(){
-    vector<Token> token_list;
-    string line = "";
-    char ch = nextChar();
 
-    while(!EXIT_FLAG && !ERROR_FLAG) {
-        // cout << "At line " << linenumber << " : " << ch << " \n";
-        
-        if(ch=='0') non_decimal_integers(ch);
-        else if(ch == '/') comment();  
-        else if(ch=='.') token_list.push_back(float_literal(0, ch));
-        else if(ch == '\'') token_list.push_back(char_literal());
-        else if(ch == '\"') token_list.push_back(string_literal());
-        else if(isNumber(ch)) token_list.push_back(numeric_literal(ch));
-        else if(isSymbol(ch)) token_list.push_back(symbol(ch));
-        else if(isAlphabet(ch)) token_list.push_back(alphanumeric(ch));
-        else if(ch == -1) {cout <<"<<" << ch << ">>\n#### Something unexpected has been encountered. Inconvience is regretted ####\n"; return false;}
-        
-        ch = nextChar(false);
-    }
-    
-    if(ERROR_FLAG) return false;
 
-    cout << "\nScanning Completed.\nThe begining of the end\n\n";
-    for(auto t : token_list){
-        cout << "Token " << t.token_number;
-        cout << ", string " << t.token_name;
-        cout << ", line number " << t.token_linenumber;
-        cout << "\n";
-    }
-    cout << "\nThe end\n";
 
-    return true;
-}
-
-int main(int argc, char *argv[]) {
-
-    srand(16);
-    for(auto el : Keywords) token_map[el] = rand();
-    for(auto el : Symbols) token_map[string(1, el)] = rand();
-
-    fin.open(argv[1]);
-    
-    cout <<"The scanning is commencing... " << endl;
-    if(!scanner()) {
-        cout << "Lexical error !@#$%^%^%$&$*&\n";
-        cout << ERROR_LOG;
-    }
-  
-    fin.close();
-
-    return 0;
-}
-
-// FUNCTION DEFINITIONS 
+// UTILITY FUNCTION DEFINITIONS 
 
 bool isAlphabet(char ch){ 
     return ((ch == '_') || ('a' <= ch && ch <= 'z') || ('A' <= ch && ch <= 'Z'));
@@ -249,31 +295,4 @@ bool isKeyword(string s){
 void lexical_error(string error){
     EXIT_FLAG = ERROR_FLAG = true;
     ERROR_LOG = error + " at line number " + to_string(linenumber);
-}
-
-bool nextLine() {
-    if(!getline(fin, line)) return false;
-    ptr = 0;
-    linenumber++;
-
-    // If the line is empty, skipping it
-    return (line.length() > 0) ? true : nextLine();
-}
-
-char nextChar(bool skip_whitespace) {
-    ptr++; // To move to the next char to be read
-
-    if(ptr >= line.length()){
-        if(!nextLine()) {
-            EXIT_FLAG = true;
-            return -1;
-        }
-    }
-
-    if(skip_whitespace){
-        while(ptr < line.length() && isspace(line[ptr])) ptr++;
-        if(ptr == line.length()) return nextChar();
-    }
-    
-    return line[ptr];
 }
