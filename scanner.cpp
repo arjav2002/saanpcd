@@ -5,6 +5,7 @@
 #include <vector>
 #include <string>
 #include <algorithm>
+#include <set>
 #include <map>
 #include <cmath>
 #define DEBUG       cerr<<"\n/n>>>I'm Here<<</n"<<endl;
@@ -20,8 +21,8 @@ bool EXIT_FLAG = false; // A flag for an end of file reached in scanning
 bool ERROR_FLAG = false; // A flag for an error in scanning 
 string ERROR_LOG = ""; // Logged statment for an error in scanning 
 
-vector<string> Keywords = {"int", "string", "char", "float", "bool", "tuple", "list", "proc", "void", "if", "elif", "else", "loop", "break", "continue", "return", "and", "is", "nor", "xor", "nand", "or", "true", "True", "tRue", "TRue", "trUe", "TrUe", "tRUe", "TRUe", "truE", "TruE", "tRuE", "TRuE", "trUE", "TrUE", "tRUE", "TRUE", "false", "False", "fAlse", "FAlse", "faLse", "FaLse", "fALse", "FALse", "falSe", "FalSe", "fAlSe", "FAlSe", "faLSe", "FaLSe", "fALSe", "FALSe", "falsE", "FalsE", "fAlsE", "FAlsE", "faLsE", "FaLsE", "fALsE", "FALsE", "falSE", "FalSE", "fAlSE", "FAlSE", "faLSE", "FaLSE", "fALSE", "FALSE"};
-vector<char> Symbols = {'#','~','*','/','%',',',';','!','&','|','^','=','<','>','\\','}','{','[',']','(',')','_', '.'};
+set<string> Keywords = {"int", "string", "char", "float", "bool", "tuple", "list", "proc", "void", "if", "elif", "else", "loop", "break", "continue", "return", "and", "is", "nor", "xor", "nand", "or", "true", "True", "tRue", "TRue", "trUe", "TrUe", "tRUe", "TRUe", "truE", "TruE", "tRuE", "TRuE", "trUE", "TrUE", "tRUE", "TRUE", "false", "False", "fAlse", "FAlse", "faLse", "FaLse", "fALse", "FALse", "falSe", "FalSe", "fAlSe", "FAlSe", "faLSe", "FaLSe", "fALSe", "FALSe", "falsE", "FalsE", "fAlsE", "FAlsE", "faLsE", "FaLsE", "fALsE", "FALsE", "falSE", "FalSE", "fAlSE", "FAlSE", "faLSE", "FaLSE", "fALSE", "FALSE"};
+set<char> Symbols = {'#','~','*','/','%',',',';','!','&','|','^','=','<','>','\\','}','{','[',']','(',')','_', '.' ,'"','\''};
 map<string, int> token_map;
 
 struct Token {
@@ -227,8 +228,7 @@ int main(int argc, char *argv[]) {
     return 0;
 }
 
-
-// FUNCTION DEFINITIONS
+// FUNCTION DEFINITIONS 
 
 bool isAlphabet(char ch){ 
     return ((ch == '_') || ('a' <= ch && ch <= 'z') || ('A' <= ch && ch <= 'Z'));
@@ -239,11 +239,11 @@ bool isNumber(char ch) {
 }
 
 bool isSymbol(char ch){
-    return find(Symbols.begin(), Symbols.end(), ch) != Symbols.end();
+    return Symbols.find(ch) != Symbols.end();
 }
 
 bool isKeyword(string s){
-    return find(Keywords.begin(), Keywords.end(), s) != Keywords.end();
+    return Keywords.find(s) != Keywords.end();
 }
 
 void lexical_error(string error){
