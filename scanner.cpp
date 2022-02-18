@@ -24,6 +24,9 @@ string ERROR_LOG = ""; // Logged statment for an error in scanning
 
 set<string> Keywords = {"int", "string", "char", "float", "bool", "tuple", "list", "proc", "void", "if", "elif", "else", "loop", "break", "continue", "return", "and", "is", "nor", "xor", "nand", "or", "true", "True", "tRue", "TRue", "trUe", "TrUe", "tRUe", "TRUe", "truE", "TruE", "tRuE", "TRuE", "trUE", "TrUE", "tRUE", "TRUE", "false", "False", "fAlse", "FAlse", "faLse", "FaLse", "fALse", "FALse", "falSe", "FalSe", "fAlSe", "FAlSe", "faLSe", "FaLSe", "fALSe", "FALSe", "falsE", "FalsE", "fAlsE", "FAlsE", "faLsE", "FaLsE", "fALsE", "FALsE", "falSE", "FalSE", "fAlSE", "FAlSE", "faLSE", "FaLSE", "fALSE", "FALSE"};
 set<char> Symbols = {'#','~','*','/','%',',',';','!','&','|','^','=','<','>','\\','}','{','[',']','(',')','_', '.' ,'"','\''};
+set<char> UnaryOpPrefixes = {'#', '~'}; // suffix is character itself
+set<char> RelationalPrefixes = {'>', '<', '='}; // suffix is =
+set<char> AssignOpPrefixes = {'#', '~', '*', '/', '!', '%', '&', '|', '^'}; // suffix is =
 map<string, int> token_map;
 
 struct Token {
@@ -62,7 +65,7 @@ bool scanner(){
 
     while(!EXIT_FLAG && !ERROR_FLAG) {
         // cout << "At line " << linenumber << " : " << ch << " \n";
-        
+        cout << "Current char: " << ch << endl;
         if(ch=='0') token_list.push_back(non_integers(ch));
         else if(ch == '/') comment();  
         else if(ch=='.') token_list.push_back(float_literal(0, ch));
@@ -74,12 +77,16 @@ bool scanner(){
         else if(ch == -1) {cout <<"<<" << ch << ">>\n#### Something unexpected has been encountered. Inconvience is regretted ####\n"; return false;}
         
         ch = nextChar(false);
+		if(token_list.size()) {
+			cout << token_list.rbegin()->token_number << endl;
+		}
     }
     
     if(ERROR_FLAG) return false;
 
     cout << "\nScanning Completed.\nThe begining of the end\n\n";
-    for(auto t : token_list){
+    for(int i = 0; i < token_list.size(); i++){
+		Token t = token_list[i];
         cout << "Token " << t.token_number;
         cout << ", string " << t.token_name;
         cout << ", line number " << t.token_linenumber;
@@ -95,7 +102,22 @@ int main(int argc, char *argv[]) {
     srand(16);
     for(auto el : Keywords) token_map[el] = rand();
     for(auto el : Symbols) token_map[string(1, el)] = rand();
-
+	for(auto e1 : UnaryOpPrefixes) {
+		string str = string(1, e1);
+		str += e1;
+		token_map[str] = rand();
+	}
+	for(auto e1 : RelationalPrefixes) {
+		string str = string(1, e1);
+		str += '=';
+		token_map[str] = rand();
+	}
+	for(auto e1 : AssignOpPrefixes) {
+		string str = string(1, e1);
+		str += '=';
+		token_map[str] = rand();
+	}
+	
     fin.open(argv[1]);
     
     cout <<"The scanning is commencing... " << endl;
@@ -126,6 +148,7 @@ char nextChar(bool skip_whitespace) {
             EXIT_FLAG = true;
             return -1;
         }
+		// line += '\n';
     }
 
     if(skip_whitespace){
@@ -169,7 +192,7 @@ Token oct_literal(char ch){
 Token float_literal(long double num, char ch){
     ch = nextChar(false);
     int ln = linenumber;
-    for(int i = 1; isNumber(ch); i++){
+    for(int i = 1; isNumber(ch) && ln == linenumber; i++){
         num += ((long double)ch - '0') / pow(10, i);
         ch = nextChar(false);
     }
@@ -179,7 +202,7 @@ Token float_literal(long double num, char ch){
 
 Token numeric_literal(char ch){
     long long num = 0, ln = linenumber;
-    while(isNumber(ch)){
+    while(isNumber(ch) && ln == linenumber){
         num = num*10 + (long long)ch - '0';
         ch = nextChar(false);
         if(ch == '.') return float_literal((long double)num, ch);
@@ -191,7 +214,7 @@ Token numeric_literal(char ch){
 Token non_integers(char ch){
     int ln=linenumber;
     ch = nextChar(false);
-    if(ln!=linenumber || ch==' '){
+    if(ln!=linenumber || isspace(ch)){
         ptr--;
         return Token(token_map["int"], to_string(0), ln);
     }
@@ -201,8 +224,22 @@ Token non_integers(char ch){
 }
 
 Token symbol(char ch){
-    string str = string(1, ch);
-    return Token(token_map[str], str, linenumber);
+	string str = string(1, ch);
+	
+	bool isUnaryPrefix = UnaryOpPrefixes.find(ch) != UnaryOpPrefixes.end();
+	bool isRelOrAssignPrefix = RelationalPrefixes.find(ch) != RelationalPrefixes.end() || AssignOpPrefixes.find(ch) != AssignOpPrefixes.end();
+	int ln = linenumber;
+	
+	if(isUnaryPrefix || isRelOrAssignPrefix) {
+		char ch2 = nextChar(false);
+		if(ln != linenumber) {
+			ptr--;
+		}
+		else if((ch2 == ch && isUnaryPrefix) || (ch2 == '=' && isRelOrAssignPrefix)) str += ch;
+		else ptr--;
+	}
+
+    return Token(token_map[str], str, ln);
 }
 
 // Extracts a lexeme which could be a varname or keyword

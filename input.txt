@@ -30,3 +30,7 @@ int float char string
 0
 forty 0
 0.4595
+
+10#
+#20
+10###	#20
