@@ -29,12 +29,55 @@ set<char> RelationalPrefixes = {'>', '<', '='}; // suffix is =
 set<char> AssignOpPrefixes = {'#', '~', '*', '/', '!', '%', '&', '|', '^'}; // suffix is =
 map<string, int> token_map;
 
+enum TokenType {
+	KEYWORD, SYMBOL, UN_OP, REL_OP, ASSIGN_OP, IDENTIFIER,
+	INT_LIT, CHAR_LIT, STR_LIT, FLOAT_LIT, DEFAULT
+};
+
+string tokenToString(TokenType tt) {
+	switch(tt) {
+	case KEYWORD:
+		return "KEYWORD";
+		break;
+	case SYMBOL:
+		return "SYMBOL";
+		break;
+	case UN_OP:
+		return "UN_OP";
+		break;
+	case REL_OP:
+		return "REL_OP";
+		break;
+	case ASSIGN_OP:
+		return "ASSIGN_OP";
+		break;
+	case IDENTIFIER:
+		return "IDENTIFIER";
+		break;
+	case INT_LIT:
+		return "INT_LIT";
+		break;
+	case CHAR_LIT:
+		return "CHAR_LIT";
+		break;
+	case STR_LIT:
+		return "STR_LIT";
+		break;
+	case FLOAT_LIT:
+		return "FLOAT_LIT";
+		break;
+	case DEFAULT:
+		return "DEFAULT";
+		break;
+	}
+}
+
 struct Token {
-    int token_number;
+    TokenType token_type;
     string token_name;
     int token_linenumber;
-    Token(int tn = -1, string tname = "", int ln = -1){
-        token_number = tn; token_name = tname; token_linenumber = ln;
+    Token(TokenType tn = DEFAULT, string tname = "", int ln = -1){
+        token_type = tn; token_name = tname; token_linenumber = ln;
     }
 };
 
@@ -83,9 +126,6 @@ bool scanner(){
         else if(ch == -1) {cout <<"<<" << ch << ">>\n#### Something unexpected has been encountered. Inconvience is regretted ####\n"; return false;}
         
         ch = nextChar(false);
-		// if(token_list.size()) {
-		// 	cout << token_list.rbegin()->token_number << endl;
-		// }
     }
     
     if(ERROR_FLAG) return false;
@@ -93,7 +133,7 @@ bool scanner(){
     cout << "\nScanning Completed.\nThe begining of the end\n\n";
     for(int i = 0; i < token_list.size(); i++){
 		Token t = token_list[i];
-        cout << "Token " << t.token_number;
+        cout << "Token " << tokenToString(t.token_type);
         cout << ", string " << t.token_name;
         cout << ", line number " << t.token_linenumber;
         cout << "\n";
@@ -106,22 +146,22 @@ bool scanner(){
 int main(int argc, char *argv[]) {
 
     srand(16);
-    for(auto el : Keywords) token_map[el] = rand();
-    for(auto el : Symbols) token_map[string(1, el)] = rand();
+    for(auto el : Keywords) token_map[el] = KEYWORD;
+    for(auto el : Symbols) token_map[string(1, el)] = SYMBOL;
 	for(auto e1 : UnaryOpPrefixes) {
 		string str = string(1, e1);
 		str += e1;
-		token_map[str] = rand();
+		token_map[str] = UN_OP;
 	}
 	for(auto e1 : RelationalPrefixes) {
 		string str = string(1, e1);
 		str += '=';
-		token_map[str] = rand();
+		token_map[str] = REL_OP;
 	}
 	for(auto e1 : AssignOpPrefixes) {
 		string str = string(1, e1);
 		str += '=';
-		token_map[str] = rand();
+		token_map[str] = ASSIGN_OP;
 	}
 	
     fin.open(argv[1]);
@@ -179,7 +219,7 @@ Token hex_literal(char ch){
     }
     // if(isSymbol(ch) || isspace(ch)) 
         ptr--;
-    return Token(token_map["int"], str, ln);
+    return Token(INT_LIT, str, ln);
 }
 
 Token oct_literal(char ch){
@@ -192,7 +232,7 @@ Token oct_literal(char ch){
         ch = nextChar(false);
     }
     ptr--;
-    return Token(token_map["int"], str, ln);
+    return Token(INT_LIT, str, ln);
 }
 
 Token float_literal(string str, char ch){
@@ -209,7 +249,7 @@ Token float_literal(string str, char ch){
         }
     }
     ptr--;
-    return Token(token_map["float"], str, ln);
+    return Token(FLOAT_LIT, str, ln);
 }
 
 Token numeric_literal(char ch){
@@ -222,19 +262,22 @@ Token numeric_literal(char ch){
     if(ln==linenumber && ch == '.') return float_literal(str, ch);
 
     ptr--;
-    return Token(token_map["int"], str, ln);
+    return Token(INT_LIT, str, ln);
 }
 
 Token non_integers(char ch){
     int ln=linenumber;
     ch = nextChar(false);
-    if(ln!=linenumber || isspace(ch)){
-        ptr--;
-        return Token(token_map["int"], to_string(0), ln);
-    }
-    else if(ch=='.') return float_literal(to_string(0), ch);
+	if(linenumber != ln) {
+		ptr--;
+		return Token(INT_LIT, to_string(0), ln);
+	}
+    if(ch=='.') return float_literal(to_string(0), ch);
     else if(ch=='x') return hex_literal(ch);
     else if(isNumber(ch)) return oct_literal(ch);
+	
+	ptr--;
+    return Token(INT_LIT, to_string(0), ln);
 }
 
 Token symbol(char ch, char ch2){
@@ -242,19 +285,32 @@ Token symbol(char ch, char ch2){
 	
 	bool isUnaryPrefix = UnaryOpPrefixes.find(ch) != UnaryOpPrefixes.end();
 	bool isRelOrAssignPrefix = RelationalPrefixes.find(ch) != RelationalPrefixes.end() || AssignOpPrefixes.find(ch) != AssignOpPrefixes.end();
+	bool isUnary = false; // isUnary or isRelAssign
+	bool isRel = false; // isRel or isAssign
+	bool isAssign = false; // isAssign or isSymbol
 	int ln = linenumber;
     
 	if(isUnaryPrefix || isRelOrAssignPrefix) {
 		if(ch2 == -1) ch2 = nextChar(false);
-        if(ch2 == '*' || ch2 == '/') 
+     //   if(ch2 == '*' || ch2 == '/') 
 		if(ln != linenumber) {
 			ptr--;
 		}
-		else if((ch2 == ch && isUnaryPrefix) || (ch2 == '=' && isRelOrAssignPrefix)) str += ch2;
+		else if((ch2 == ch && isUnaryPrefix) || (ch2 == '=' && isRelOrAssignPrefix)) {
+			str += ch2;
+			isUnary = ch2 == ch && isUnaryPrefix;
+			isRel = ch2 == '=' && RelationalPrefixes.find(ch) != RelationalPrefixes.end();
+			isAssign = ch2 == '=' && AssignOpPrefixes.find(ch) != AssignOpPrefixes.end();
+		}
 		else ptr--;
 	}
 
-    return Token(token_map[str], str, ln);
+	TokenType retType;
+	if(isUnary) retType = UN_OP;
+	else if(isRel) retType = REL_OP;
+	else if(isAssign) retType = ASSIGN_OP;
+	else retType = SYMBOL;
+    return Token(retType, str, ln);
 }
 
 // Extracts a lexeme which could be a varname or keyword
@@ -272,9 +328,9 @@ Token alphanumeric(char ch){
     ptr--;
 
     if(isKeyword(str))
-        return Token(token_map[str], str, ln);    
+        return Token(KEYWORD, str, ln);    
     else
-        return Token(token_map["string"], str, ln);
+        return Token(IDENTIFIER, str, ln);
 }
 
 Token char_literal(){
@@ -291,7 +347,7 @@ Token char_literal(){
         ERROR_LOG = "Invalid Char literal";
     }
     
-    return Token(token_map["char"], char_lit + ch, linenumber);
+    return Token(CHAR_LIT, char_lit + ch, linenumber);
 }
 
 Token string_literal(){
@@ -310,13 +366,13 @@ Token string_literal(){
             break;
         }
     }
-    return Token(token_map["string"], str, linenumber);
+    return Token(STR_LIT, str, linenumber);
 }
 
 pair<char,bool> comment(){
     int ln = linenumber;
     char ch = nextChar(false);
-    if(ln != linenumber) return {}
+    if(ln != linenumber) return {};
     // if(EXIT_FLAG || ERROR_FLAG) ERROR_LOG = "Single / found";
     if(ch == '/'){
         ptr = line.length();
