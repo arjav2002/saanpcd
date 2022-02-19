@@ -43,20 +43,20 @@ bool isNumber(char ch);
 bool isSymbol(char ch);
 bool isKeyword(string s);
 
-void lexical_error(string error);
+void lexical_error(string error, int ln = linenumber);
 char nextChar(bool skip_whitespace = true);
 bool nextLine();
 
 Token hex_literal(char ch);
 Token oct_literal(char ch);
-Token float_literal(long double num, char ch);
+Token float_literal(string str, char ch);
 Token numeric_literal(char ch);
 Token non_integers(char ch);
-Token symbol(char ch);
+Token symbol(char ch, char ch2 = -1);
 Token alphanumeric(char ch); // Extracts a lexeme which could be a varname or keyword
 Token char_literal();
 Token string_literal();
-void comment();
+pair<char,bool> comment();
 
 bool scanner(){
     vector<Token> token_list;
@@ -65,10 +65,16 @@ bool scanner(){
 
     while(!EXIT_FLAG && !ERROR_FLAG) {
         // cout << "At line " << linenumber << " : " << ch << " \n";
-        cout << "Current char: " << ch << endl;
-        if(ch=='0') token_list.push_back(non_integers(ch));
-        else if(ch == '/') comment();  
-        else if(ch=='.') token_list.push_back(float_literal(0, ch));
+        // cout << "Current char: " << ch << endl;
+        
+        if(ch == '/'){
+            pair<char,bool> com = comment();
+            if(com.second) continue;
+            else token_list.push_back(symbol(ch, com.first));
+        }
+        else if(ch=='0') token_list.push_back(non_integers(ch));
+        // else if(ch == '/') comment();  
+        else if(ch=='.') token_list.push_back(float_literal("", ch));
         else if(ch == '\'') token_list.push_back(char_literal());
         else if(ch == '\"') token_list.push_back(string_literal());
         else if(isNumber(ch)) token_list.push_back(numeric_literal(ch));
@@ -77,9 +83,9 @@ bool scanner(){
         else if(ch == -1) {cout <<"<<" << ch << ">>\n#### Something unexpected has been encountered. Inconvience is regretted ####\n"; return false;}
         
         ch = nextChar(false);
-		if(token_list.size()) {
-			cout << token_list.rbegin()->token_number << endl;
-		}
+		// if(token_list.size()) {
+		// 	cout << token_list.rbegin()->token_number << endl;
+		// }
     }
     
     if(ERROR_FLAG) return false;
@@ -189,26 +195,34 @@ Token oct_literal(char ch){
     return Token(token_map["int"], str, ln);
 }
 
-Token float_literal(long double num, char ch){
-    ch = nextChar(false);
+Token float_literal(string str, char ch){
+    str += ch;
     int ln = linenumber;
-    for(int i = 1; isNumber(ch) && ln == linenumber; i++){
-        num += ((long double)ch - '0') / pow(10, i);
-        ch = nextChar(false);
+    ch = nextChar(false);
+    if((str!="." && ln==linenumber && !isNumber(ch)) || (str=="." && (ln!=linenumber || !isNumber(ch)))){
+        lexical_error("Invalid float literal", ln);
+    }
+    else if(ln==linenumber){
+        while(isNumber(ch) && ln == linenumber){
+            str += ch;
+            ch = nextChar(false);
+        }
     }
     ptr--;
-    return Token(token_map["float"], to_string(num), ln);
+    return Token(token_map["float"], str, ln);
 }
 
 Token numeric_literal(char ch){
-    long long num = 0, ln = linenumber;
+    string str = "";
+    int ln = linenumber;
     while(isNumber(ch) && ln == linenumber){
-        num = num*10 + (long long)ch - '0';
+        str += ch;
         ch = nextChar(false);
-        if(ch == '.') return float_literal((long double)num, ch);
     }
+    if(ln==linenumber && ch == '.') return float_literal(str, ch);
+
     ptr--;
-    return Token(token_map["int"], to_string(num), ln);;
+    return Token(token_map["int"], str, ln);
 }
 
 Token non_integers(char ch){
@@ -218,24 +232,25 @@ Token non_integers(char ch){
         ptr--;
         return Token(token_map["int"], to_string(0), ln);
     }
-    else if(ch=='.') return float_literal(0, ch);
+    else if(ch=='.') return float_literal(to_string(0), ch);
     else if(ch=='x') return hex_literal(ch);
     else if(isNumber(ch)) return oct_literal(ch);
 }
 
-Token symbol(char ch){
+Token symbol(char ch, char ch2){
 	string str = string(1, ch);
 	
 	bool isUnaryPrefix = UnaryOpPrefixes.find(ch) != UnaryOpPrefixes.end();
 	bool isRelOrAssignPrefix = RelationalPrefixes.find(ch) != RelationalPrefixes.end() || AssignOpPrefixes.find(ch) != AssignOpPrefixes.end();
 	int ln = linenumber;
-	
+    
 	if(isUnaryPrefix || isRelOrAssignPrefix) {
-		char ch2 = nextChar(false);
+		if(ch2 == -1) ch2 = nextChar(false);
+        if(ch2 == '*' || ch2 == '/') 
 		if(ln != linenumber) {
 			ptr--;
 		}
-		else if((ch2 == ch && isUnaryPrefix) || (ch2 == '=' && isRelOrAssignPrefix)) str += ch;
+		else if((ch2 == ch && isUnaryPrefix) || (ch2 == '=' && isRelOrAssignPrefix)) str += ch2;
 		else ptr--;
 	}
 
@@ -267,7 +282,7 @@ Token char_literal(){
     string char_lit = "";
     if(ch == '\\') {
         char_lit += '\\';
-        ch = nextChar(false);
+        ch = nextChar(false); //to do : only escape valid excape sequences
         if(nextChar(false) != '\'') {
             ERROR_LOG = "Invalid Char literal";
         }
@@ -281,8 +296,8 @@ Token char_literal(){
 
 Token string_literal(){
     string str = "";
-    char ch = nextChar(false);
     int ln = linenumber;
+    char ch = nextChar(false);
     while(ch != '\"'){
         str += ch;
         if(ch == '\\') {
@@ -291,35 +306,33 @@ Token string_literal(){
         }
         ch = nextChar(false);
         if(ln != linenumber || EXIT_FLAG || ERROR_FLAG) {
-            lexical_error("Invalid String literal");
+            lexical_error("Invalid String literal",ln);
             break;
         }
     }
     return Token(token_map["string"], str, linenumber);
 }
 
-void comment(){
+pair<char,bool> comment(){
+    int ln = linenumber;
     char ch = nextChar(false);
-    if(EXIT_FLAG || ERROR_FLAG) ERROR_LOG = "Single / found";
-    else if(ch == '/'){
+    if(ln != linenumber) return {}
+    // if(EXIT_FLAG || ERROR_FLAG) ERROR_LOG = "Single / found";
+    if(ch == '/'){
         ptr = line.length();
-        return;
+        return {-1, true};
     }
     else if(ch == '*'){
         char prev = -1;
         while(true){
-            if(ch == '/' && prev == '*') return;
+            if(ch == '/' && prev == '*') return {-1, true};
             prev = ch;
             ch = nextChar(false);
             if(EXIT_FLAG || ERROR_FLAG){ ERROR_LOG = "Multi-line comment does not finish"; break;}
         }
     }
-    else {ERROR_FLAG = true; ERROR_LOG = "Single / found";}; 
-    return;
+    else return {ch,false}; 
 }
-
-
-
 
 // UTILITY FUNCTION DEFINITIONS 
 
@@ -339,7 +352,7 @@ bool isKeyword(string s){
     return Keywords.find(s) != Keywords.end();
 }
 
-void lexical_error(string error){
+void lexical_error(string error, int ln){
     EXIT_FLAG = ERROR_FLAG = true;
-    ERROR_LOG = error + " at line number " + to_string(linenumber);
+    ERROR_LOG = error + " at line number " + to_string(ln);
 }
