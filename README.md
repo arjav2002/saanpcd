@@ -76,7 +76,7 @@ int foo(int a=5, b)
 }
 proc bar()
 {
-    // empty
+    ; // empty
 }
 ```
 ### Conditional statements
