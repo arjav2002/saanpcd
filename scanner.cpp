@@ -347,7 +347,7 @@ Token char_literal(){
         ERROR_LOG = "Invalid Char literal";
     }
     
-    return Token(CHAR_LIT, char_lit + ch, linenumber);
+    return Token(CHAR_LIT, "\'"+char_lit + ch+"\'", linenumber);
 }
 
 Token string_literal(){
@@ -366,6 +366,7 @@ Token string_literal(){
             break;
         }
     }
+    str = "\""+str+"\"" ;
     return Token(STR_LIT, str, linenumber);
 }
 
