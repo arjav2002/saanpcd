@@ -27,7 +27,7 @@ This language is a C-like language with a few extra features `import`ed from Pyt
   ```
   are allowed
 * Statements __must__ end with a semicolon (`;`)
-* Conditional statements follow the same conventions and syntax as C (refer below for syntax definitions)
+* Conditional statements follow the same conventions and syntax as C (refer [below](https://github.com/arjav2002/saanpcd/edit/main/README.md#syntax-rules) for syntax definitions)
 * Only one type of loop statement is supported, keyword being `loop`, which follows the `while` syntax from C
 * The various operators supported are
   - Arithmetic operators
@@ -58,3 +58,43 @@ This language is a C-like language with a few extra features `import`ed from Pyt
     + less than or equal to (`<=`)
 
 There is no `main` function, so the execution will start from the first statement not contained in a function. Execution starts from the top of the file (top-down approach)
+
+## Syntax rules
+### Creating variables
+```C++
+int i = 5 ;
+float f = 49.2 ;
+char c = '\n' ;
+string s = "saamp" ;
+bool b = true ;
+```
+### Functions and procedures
+```C++
+int foo(int a=5, b)
+{
+    return a#b ;
+}
+proc bar()
+{
+    // empty
+}
+```
+### Conditional statements
+```C++
+if(x|0xff >= 4)
+{
+    a## ;
+}
+else
+{
+    a ~= b ;
+}
+```
+### Loop statements
+```C++
+loop (x < 10)
+{
+    a /= 2.71828 ;
+    x## ;
+}
+```
