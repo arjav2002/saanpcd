@@ -95,7 +95,7 @@ Token oct_literal(char ch);
 Token float_literal(string str, char ch);
 Token numeric_literal(char ch);
 Token non_integers(char ch);
-Token symbol(char ch, char ch2 = -1);
+Token symbol(char ch, char ch2 = -1, int ln = -1);
 Token alphanumeric(char ch); // Extracts a lexeme which could be a varname or keyword
 Token char_literal();
 Token string_literal();
@@ -111,12 +111,11 @@ bool scanner(){
         // cout << "Current char: " << ch << endl;
         
         if(ch == '/'){
+            int ln = linenumber;
             pair<char,bool> com = comment();
-            if(com.second) continue;
-            else token_list.push_back(symbol(ch, com.first));
+            if(!com.second) token_list.push_back(symbol(ch, com.first, ln));
         }
         else if(ch=='0') token_list.push_back(non_integers(ch));
-        // else if(ch == '/') comment();  
         else if(ch=='.') token_list.push_back(float_literal("", ch));
         else if(ch == '\'') token_list.push_back(char_literal());
         else if(ch == '\"') token_list.push_back(string_literal());
@@ -280,7 +279,7 @@ Token non_integers(char ch){
     return Token(INT_LIT, to_string(0), ln);
 }
 
-Token symbol(char ch, char ch2){
+Token symbol(char ch, char ch2, int ln){
 	string str = string(1, ch);
 	
 	bool isUnaryPrefix = UnaryOpPrefixes.find(ch) != UnaryOpPrefixes.end();
@@ -288,7 +287,7 @@ Token symbol(char ch, char ch2){
 	bool isUnary = false; // isUnary or isRelAssign
 	bool isRel = false; // isRel or isAssign
 	bool isAssign = false; // isAssign or isSymbol
-	int ln = linenumber;
+	if(ln == -1) ln = linenumber;
     
 	if(isUnaryPrefix || isRelOrAssignPrefix) {
 		if(ch2 == -1) ch2 = nextChar(false);

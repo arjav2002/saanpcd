@@ -22,8 +22,9 @@ jkl mno pqr
 int float char string
 
 // Symbols
-= ! "?"
-
+= ! "?" / /= 
+/
+/
 "\""
 
 //non integers
