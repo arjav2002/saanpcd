@@ -16,22 +16,21 @@ jkl mno pqr
 "String + \" 3th081y-081yhtiolqkhn0tgi13 " "Char" 
 
 // Numbers
-123 345.5 .003
+123 345.5 .003 1123.05
 
 // Keywords
 int float char string
 
 // Symbols
-= ! "?" / /= 
-/
-/
+= ! "?" /= / &=
+
 "\""
 
 //non integers
 0
 forty 0
 0.4595
-
+12.
 10#
 #20
 10###	#20

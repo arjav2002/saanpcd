@@ -27,6 +27,7 @@ set<char> Symbols = {'#','~','*','/','%',',',';','!','&','|','^','=','<','>','\\
 set<char> UnaryOpPrefixes = {'#', '~'}; // suffix is character itself
 set<char> RelationalPrefixes = {'>', '<', '='}; // suffix is =
 set<char> AssignOpPrefixes = {'#', '~', '*', '/', '!', '%', '&', '|', '^'}; // suffix is =
+set<char> EscapeSequences = {'a','b','f','n','r','t','v','\\','\'','\"','?','0'};
 map<string, int> token_map;
 
 enum TokenType {
@@ -333,18 +334,19 @@ Token alphanumeric(char ch){
 }
 
 Token char_literal(){
+    int ln = linenumber;
     char ch = nextChar(false);
+
     string char_lit = "";
     if(ch == '\\') {
         char_lit += '\\';
-        ch = nextChar(false); //to do : only escape valid excape sequences
-        if(nextChar(false) != '\'') {
-            ERROR_LOG = "Invalid Char literal";
-        }
+        ch = nextChar(false); 
+        if(EscapeSequences.find(ch) == EscapeSequences.end()) //only escape valid excape sequences
+            lexical_error("Invalid Char literal",ln);
     }
-    else if(nextChar(false) != '\'') {
-        ERROR_LOG = "Invalid Char literal";
-    }
+    // first ln!=linenumber checking is for current char and last one is for the next char 
+    if(ln!=linenumber || nextChar(false) != '\'' || ln!=linenumber) // checking for the end
+        lexical_error("Invalid Char literal",ln);
     
     return Token(CHAR_LIT, "\'"+char_lit + ch+"\'", linenumber);
 }
