@@ -217,8 +217,10 @@ Token hex_literal(char ch){
         str+=ch;
         ch = nextChar(false);
     }
-    // if(isSymbol(ch) || isspace(ch)) 
-        ptr--;
+    //below EXIT_FLAG used to check end of file where ch = -1 is returned
+    if(str=="0x" || (ln==linenumber && !(isSymbol(ch) || isspace(ch)|| EXIT_FLAG)))
+        lexical_error("Invalid integer literal",ln);
+    ptr--;
     return Token(INT_LIT, str, ln);
 }
 
@@ -231,6 +233,9 @@ Token oct_literal(char ch){
         str+=ch;
         ch = nextChar(false);
     }
+    //below EXIT_FLAG used to check end of file where ch = -1 is returned
+    if((ln==linenumber && !(isSymbol(ch) || isspace(ch) || EXIT_FLAG)))
+        lexical_error("Invalid integer literal",ln);
     ptr--;
     return Token(INT_LIT, str, ln);
 }
@@ -248,6 +253,9 @@ Token float_literal(string str, char ch){
             ch = nextChar(false);
         }
     }
+    //below EXIT_FLAG used to check end of file where ch = -1 is returned
+    if((ln==linenumber && !(isSymbol(ch) || isspace(ch) || EXIT_FLAG)))
+        lexical_error("Invalid float literal",ln);
     ptr--;
     return Token(FLOAT_LIT, str, ln);
 }
@@ -260,6 +268,10 @@ Token numeric_literal(char ch){
         ch = nextChar(false);
     }
     if(ln==linenumber && ch == '.') return float_literal(str, ch);
+    
+    //below EXIT_FLAG used to check end of file where ch = -1 is returned
+    if((ln==linenumber && !(isSymbol(ch) || isspace(ch) || EXIT_FLAG))) 
+        lexical_error("Invalid integer literal",ln);
 
     ptr--;
     return Token(INT_LIT, str, ln);
@@ -275,6 +287,9 @@ Token non_integers(char ch){
     if(ch=='.') return float_literal(to_string(0), ch);
     else if(ch=='x') return hex_literal(ch);
     else if(isNumber(ch)) return oct_literal(ch);
+    //below EXIT_FLAG used to check end of file where ch = -1 is returned
+    else if((!(isSymbol(ch) || isspace(ch) || EXIT_FLAG)))
+        lexical_error("Invalid integer literal",ln);
 	
 	ptr--;
     return Token(INT_LIT, to_string(0), ln);
