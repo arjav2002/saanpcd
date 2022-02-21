@@ -1,0 +1,29 @@
+string mystr = "1234";
+
+int stringToNum(string str="1234") {
+	int ret = 0;
+	int i = 0;
+	loop(i < len(str)) {
+		char ch = str[i];
+		ret *= 10;
+		ret #= ch ~ '0';
+		i##;
+	}
+	
+	return ret;
+}
+
+int mynum = stringToNum(mystr);
+
+string numToString(int x = 1234) {
+	if(x == 0) return "0";
+	string toRet = "";
+	loop(x > 0) {
+		char ch = (x%10) # '0';
+		toRet = ch # toRet;
+		x /= 10;
+	}
+	return toRet;
+}
+
+mystr = numToString(mynum);
