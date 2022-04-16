@@ -1,0 +1,2 @@
+// this program should result in a lexical error when scanned by the lexer
+int a = 0x11z ;
