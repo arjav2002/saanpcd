@@ -1,0 +1,7 @@
+{
+    "files.associations": {
+        "*.ejs": "html",
+        "editor.acceptSuggestionOnCommitCharacter": "false",
+        "iosfwd": "cpp"
+    }
+}
