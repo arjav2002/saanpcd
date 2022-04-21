@@ -32,15 +32,22 @@ map<string, int> token_map;
 
 enum TokenType {
 	KEYWORD, SYMBOL, UN_OP, REL_OP, ASSIGN_OP, IDENTIFIER,
-	INT_LIT, CHAR_LIT, STR_LIT, FLOAT_LIT, DEFAULT
+	INT_LIT, CHAR_LIT, STR_LIT, FLOAT_LIT, DEFAULT,
+    INT, STRING, CHAR, FLOAT, BOOL, TUPLE, LIST, PROC, VOID,
+    IF, ELIF, ELSE, LOOP, BREAK, CONTINUE, RETURN, AND, IS, 
+    NOR, XOR, NAND, OR, TRUE, FALSE, HASH, TILDE, ASTERIX, SLASH, 
+    MODULO, COMMA, SEMICOLON, EXCLAMATION, AMPERSAND, PIPE, KARAT, 
+    EQUAL, LESSTHAN, GREATERTHEN, BACKSLASH, RIGHTANGULAR, LEFTANGULAR, 
+    RIGHTSQUARE, LEFTSQUARE, LEFTROUND, RIGHTROUND, UNDERSCORE, DOT, 
+    DOUBLEQUOTE, SINGLEQUOTE, INCREMENT, DECREMENT, DOUBLEEQUAL
 };
+
+map<string, TokenType> stringToTokenMap;
+void doStringToTokenMapping();
 
 string tokenToString(TokenType tt) {
 	switch(tt) {
-	case KEYWORD:
-		return "KEYWORD";
-		break;
-	case SYMBOL:
+    case SYMBOL:
 		return "SYMBOL";
 		break;
 	case UN_OP:
@@ -70,8 +77,101 @@ string tokenToString(TokenType tt) {
 	case DEFAULT:
 		return "DEFAULT";
 		break;
-	}
+
+    case INT:
+        return "INT";
+        break;
+    case STRING:
+        return "STRING";
+        break;
+    case CHAR:
+        return "CHAR";
+        break;
+    case FLOAT:
+        return "FLOAT";
+        break;
+    case BOOL:
+        return "BOOL";
+        break;
+    case TUPLE:
+        return "TUPLE";
+        break;
+    case LIST:
+        return "LIST";
+        break;
+    case PROC:
+        return "PROC";
+        break;
+    case VOID:
+        return "VOID";
+        break;
+    case IF:
+        return "IF";
+        break;
+    case ELIF:
+        return "ELIF";
+        break;
+    case ELSE:
+        return "ELSE";
+        break;
+    case LOOP:
+        return "LOOP";
+        break;
+    case BREAK:
+        return "BREAK";
+        break;
+    case CONTINUE:
+        return "CONTINUE";
+        break;
+    case RETURN:
+        return "RETURN";
+        break;
+    case AND:
+        return "AND";
+        break;
+    case IS:
+        return "IS";
+        break;
+    case NOR:
+        return "NOR";
+        break;
+    case XOR:
+        return "XOR";
+        break;
+    case NAND:
+        return "NAND";
+        break;
+    case OR:
+        return "OR";
+        break;
+    case TRUE:
+        return "TRUE";
+        break;
+    case FALSE:
+        return "FALSE";
+        break;
+    case INCREMENT:
+        return "INCREMENT";
+        break;
+    case DECREMENT:
+        return "DECREMENT";
+        break;
+	case LEFTANGULAR:
+        return "LEFTANGULAR";
+        break;
+    case RIGHTANGULAR:
+        return "RIGHTANGULAR";
+        break;
+	case EQUAL:
+        return "EQUAL";
+        break;
+    case DOUBLEEQUAL:
+        return "DOUBLEEQUAL";
+        break;
+    }
+    
 }
+
 
 struct Token {
     TokenType token_type;
@@ -146,7 +246,11 @@ bool scanner(){
 int main(int argc, char *argv[]) {
 
     srand(16);
-    for(auto el : Keywords) token_map[el] = KEYWORD;
+    for(auto el : Keywords){
+        // string str = el;
+        // std::transform(str.begin(), str.end(),str.begin(), ::toupper);
+        token_map[el] = KEYWORD;
+    }
     for(auto el : Symbols) token_map[string(1, el)] = SYMBOL;
 	for(auto e1 : UnaryOpPrefixes) {
 		string str = string(1, e1);
@@ -163,7 +267,8 @@ int main(int argc, char *argv[]) {
 		str += '=';
 		token_map[str] = ASSIGN_OP;
 	}
-	
+	doStringToTokenMapping();
+    
     fin.open(argv[1]);
     
     cout <<"The scanning is commencing... " << endl;
@@ -321,9 +426,22 @@ Token symbol(char ch, char ch2, int ln){
 	}
 
 	TokenType retType;
-	if(isUnary) retType = UN_OP;
-	else if(isRel) retType = REL_OP;
-	else if(isAssign) retType = ASSIGN_OP;
+	if(isUnary) {
+        retType = UN_OP;
+        if(str[0] == '#') retType = INCREMENT;
+        else retType = DECREMENT;
+    }
+	else if(isRel) //retType = REL_OP;
+    {
+        if(str[0] == '<') retType = LEFTANGULAR;
+        if(str[0] == '>') retType = RIGHTANGULAR;
+        if(str[0] == '=') retType = DOUBLEEQUAL;
+    }
+	else if(isAssign) // retType = ASSIGN_OP;
+    {
+        cout << "####### " << str << endl;
+        retType = ASSIGN_OP;
+    }
 	else retType = SYMBOL;
     return Token(retType, str, ln);
 }
@@ -342,8 +460,12 @@ Token alphanumeric(char ch){
     // ptr is being decremented as alphanumeric goes ahead of its range 
     ptr--;
 
-    if(isKeyword(str))
-        return Token(KEYWORD, str, ln);    
+    if(isKeyword(str)){
+        string caps = str;
+        std::transform(caps.begin(), caps.end(),caps.begin(), ::toupper);
+        return Token(stringToTokenMap[caps], str, ln);    
+        // return Token(KEYWORD, str, ln);    
+    }
     else
         return Token(IDENTIFIER, str, ln);
 }
@@ -408,6 +530,66 @@ pair<char,bool> comment(){
 }
 
 // UTILITY FUNCTION DEFINITIONS 
+
+void doStringToTokenMapping(){
+    // stringToTokenMap[keyword] = TokenType::keyword;
+    stringToTokenMap["INT"] = TokenType::INT;
+    stringToTokenMap["STRING"] = TokenType::STRING;
+    stringToTokenMap["CHAR"] = TokenType::CHAR;
+    stringToTokenMap["FLOAT"] = TokenType::FLOAT;
+    stringToTokenMap["BOOL"] = TokenType::BOOL;
+    stringToTokenMap["TUPLE"] = TokenType::TUPLE;
+    stringToTokenMap["LIST"] = TokenType::LIST;
+    stringToTokenMap["PROC"] = TokenType::PROC;
+    stringToTokenMap["VOID"] = TokenType::VOID;
+    stringToTokenMap["IF"] = TokenType::IF;
+    stringToTokenMap["ELIF"] = TokenType::ELIF;
+    stringToTokenMap["ELSE"] = TokenType::ELSE;
+    stringToTokenMap["LOOP"] = TokenType::LOOP;
+    stringToTokenMap["BREAK"] = TokenType::BREAK;
+    stringToTokenMap["CONTINUE"] = TokenType::CONTINUE;
+    stringToTokenMap["RETURN"] = TokenType::RETURN;
+    stringToTokenMap["AND"] = TokenType::AND;
+    stringToTokenMap["IS"] = TokenType::IS;
+    stringToTokenMap["NOR"] = TokenType::NOR;
+    stringToTokenMap["XOR"] = TokenType::XOR;
+    stringToTokenMap["NAND"] = TokenType::NAND;
+    stringToTokenMap["OR"] = TokenType::OR;
+    stringToTokenMap["TRUE"] = TokenType::TRUE;
+    stringToTokenMap["FALSE"] = TokenType::FALSE;
+
+    stringToTokenMap["HASH"] = TokenType::HASH;
+    stringToTokenMap["TILDE"] = TokenType::TILDE;
+    stringToTokenMap["ASTERIX"] = TokenType::ASTERIX;
+    stringToTokenMap["SLASH"] = TokenType::SLASH;
+    stringToTokenMap["MODULO"] = TokenType::MODULO;
+    stringToTokenMap["COMMA"] = TokenType::COMMA;
+    stringToTokenMap["SEMICOLON"] = TokenType::SEMICOLON;
+    stringToTokenMap["EXCLAMATION"] = TokenType::EXCLAMATION;
+    stringToTokenMap["AMPERSAND"] = TokenType::AMPERSAND;
+    stringToTokenMap["PIPE"] = TokenType::PIPE;
+    stringToTokenMap["KARAT"] = TokenType::KARAT;
+    stringToTokenMap["EQUAL"] = TokenType::EQUAL;
+    stringToTokenMap["DOUBLEEQUAL"] = TokenType::DOUBLEEQUAL;
+    stringToTokenMap["LESSTHAN"] = TokenType::LESSTHAN;
+    stringToTokenMap["GREATERTHEN"] = TokenType::GREATERTHEN;
+    stringToTokenMap["BACKSLASH"] = TokenType::BACKSLASH;
+    stringToTokenMap["RIGHTANGULAR"] = TokenType::RIGHTANGULAR;
+    stringToTokenMap["LEFTANGULAR"] = TokenType::LEFTANGULAR;
+    stringToTokenMap["RIGHTSQUARE"] = TokenType::RIGHTSQUARE;
+    stringToTokenMap["LEFTSQUARE"] = TokenType::LEFTSQUARE;
+    stringToTokenMap["LEFTROUND"] = TokenType::LEFTROUND;
+    stringToTokenMap["RIGHTROUND"] = TokenType::RIGHTROUND;
+    stringToTokenMap["UNDERSCORE"] = TokenType::UNDERSCORE;
+    stringToTokenMap["DOT"] = TokenType::DOT;
+    stringToTokenMap["DOUBLEQUOTE"] = TokenType::DOUBLEQUOTE;
+    stringToTokenMap["SINGLEQUOTE"] = TokenType::SINGLEQUOTE;
+    
+    stringToTokenMap["INCREMENT"] = TokenType::INCREMENT;
+    stringToTokenMap["DECREMENT"] = TokenType::DECREMENT;
+
+
+}
 
 bool isAlphabet(char ch){ 
     return ((ch == '_') || ('a' <= ch && ch <= 'z') || ('A' <= ch && ch <= 'Z'));
