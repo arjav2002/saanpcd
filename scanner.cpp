@@ -35,7 +35,11 @@ enum TokenType {
 	INT_LIT, CHAR_LIT, STR_LIT, FLOAT_LIT, DEFAULT,
     INT, STRING, CHAR, FLOAT, BOOL, TUPLE, LIST, PROC, VOID,
     IF, ELIF, ELSE, LOOP, BREAK, CONTINUE, RETURN, AND, IS, 
-    NOR, XOR, NAND, OR, TRUE, FALSE
+    NOR, XOR, NAND, OR, TRUE, FALSE, HASH, TILDE, ASTERIX, SLASH, 
+    MODULO, COMMA, SEMICOLON, EXCLAMATION, AMPERSAND, PIPE, KARAT, 
+    EQUAL, LESSTHAN, GREATERTHEN, BACKSLASH, RIGHTANGULAR, LEFTANGULAR, 
+    RIGHTSQUARE, LEFTSQUARE, LEFTROUND, RIGHTROUND, UNDERSCORE, DOT, 
+    DOUBLEQUOTE, SINGLEQUOTE, INCREMENT, DECREMENT, DOUBLEEQUAL
 };
 
 map<string, TokenType> stringToTokenMap;
@@ -146,7 +150,26 @@ string tokenToString(TokenType tt) {
     case FALSE:
         return "FALSE";
         break;
-	}
+    case INCREMENT:
+        return "INCREMENT";
+        break;
+    case DECREMENT:
+        return "DECREMENT";
+        break;
+	case LEFTANGULAR:
+        return "LEFTANGULAR";
+        break;
+    case RIGHTANGULAR:
+        return "RIGHTANGULAR";
+        break;
+	case EQUAL:
+        return "EQUAL";
+        break;
+    case DOUBLEEQUAL:
+        return "DOUBLEEQUAL";
+        break;
+    }
+    
 }
 
 
@@ -403,9 +426,22 @@ Token symbol(char ch, char ch2, int ln){
 	}
 
 	TokenType retType;
-	if(isUnary) retType = UN_OP;
-	else if(isRel) retType = REL_OP;
-	else if(isAssign) retType = ASSIGN_OP;
+	if(isUnary) {
+        retType = UN_OP;
+        if(str[0] == '#') retType = INCREMENT;
+        else retType = DECREMENT;
+    }
+	else if(isRel) //retType = REL_OP;
+    {
+        if(str[0] == '<') retType = LEFTANGULAR;
+        if(str[0] == '>') retType = RIGHTANGULAR;
+        if(str[0] == '=') retType = DOUBLEEQUAL;
+    }
+	else if(isAssign) // retType = ASSIGN_OP;
+    {
+        cout << "####### " << str << endl;
+        retType = ASSIGN_OP;
+    }
 	else retType = SYMBOL;
     return Token(retType, str, ln);
 }
@@ -521,6 +557,38 @@ void doStringToTokenMapping(){
     stringToTokenMap["OR"] = TokenType::OR;
     stringToTokenMap["TRUE"] = TokenType::TRUE;
     stringToTokenMap["FALSE"] = TokenType::FALSE;
+
+    stringToTokenMap["HASH"] = TokenType::HASH;
+    stringToTokenMap["TILDE"] = TokenType::TILDE;
+    stringToTokenMap["ASTERIX"] = TokenType::ASTERIX;
+    stringToTokenMap["SLASH"] = TokenType::SLASH;
+    stringToTokenMap["MODULO"] = TokenType::MODULO;
+    stringToTokenMap["COMMA"] = TokenType::COMMA;
+    stringToTokenMap["SEMICOLON"] = TokenType::SEMICOLON;
+    stringToTokenMap["EXCLAMATION"] = TokenType::EXCLAMATION;
+    stringToTokenMap["AMPERSAND"] = TokenType::AMPERSAND;
+    stringToTokenMap["PIPE"] = TokenType::PIPE;
+    stringToTokenMap["KARAT"] = TokenType::KARAT;
+    stringToTokenMap["EQUAL"] = TokenType::EQUAL;
+    stringToTokenMap["DOUBLEEQUAL"] = TokenType::DOUBLEEQUAL;
+    stringToTokenMap["LESSTHAN"] = TokenType::LESSTHAN;
+    stringToTokenMap["GREATERTHEN"] = TokenType::GREATERTHEN;
+    stringToTokenMap["BACKSLASH"] = TokenType::BACKSLASH;
+    stringToTokenMap["RIGHTANGULAR"] = TokenType::RIGHTANGULAR;
+    stringToTokenMap["LEFTANGULAR"] = TokenType::LEFTANGULAR;
+    stringToTokenMap["RIGHTSQUARE"] = TokenType::RIGHTSQUARE;
+    stringToTokenMap["LEFTSQUARE"] = TokenType::LEFTSQUARE;
+    stringToTokenMap["LEFTROUND"] = TokenType::LEFTROUND;
+    stringToTokenMap["RIGHTROUND"] = TokenType::RIGHTROUND;
+    stringToTokenMap["UNDERSCORE"] = TokenType::UNDERSCORE;
+    stringToTokenMap["DOT"] = TokenType::DOT;
+    stringToTokenMap["DOUBLEQUOTE"] = TokenType::DOUBLEQUOTE;
+    stringToTokenMap["SINGLEQUOTE"] = TokenType::SINGLEQUOTE;
+    
+    stringToTokenMap["INCREMENT"] = TokenType::INCREMENT;
+    stringToTokenMap["DECREMENT"] = TokenType::DECREMENT;
+
+
 }
 
 bool isAlphabet(char ch){ 
