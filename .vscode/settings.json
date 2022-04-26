@@ -2,6 +2,7 @@
     "files.associations": {
         "*.ejs": "html",
         "editor.acceptSuggestionOnCommitCharacter": "false",
-        "iosfwd": "cpp"
+        "iosfwd": "cpp",
+        "iostream": "cpp"
     }
 }
