@@ -24,6 +24,7 @@ assign -> vname_identifier |= exp
 assign -> vname_identifier ^= exp 
 assign -> vname_identifier >>= exp 
 assign -> vname_identifier <<= exp
+assign -> vname_identifier { exp } = exp
 loop_stmt -> loop ( exp ) { stmt_list } 
 if_stmt -> if ( exp ) { stmt_list } 
 cond -> if_stmt
