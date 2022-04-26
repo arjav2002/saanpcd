@@ -13,6 +13,8 @@
 #include "parser.hpp"
 
 using namespace std;
+
+void setSemanticRules(vector<Production>& productions);
 struct StackSymbol {
     bool is_state;
     union {
@@ -25,6 +27,7 @@ struct StackSymbol {
         ts = new TreeSymbol;
         ts->type = type;
         ts->value = value;
+        ts->parent = nullptr;
     }
 
     ~StackSymbol() {
@@ -114,6 +117,7 @@ TreeSymbol* parse(vector<Token>& program)
             p.rhs.push_back(prodString);
             p.beforeParseChildSemantic.push_back(nullptr);
         }
+        p.afterParseSemantic = nullptr;
         productions.push_back(p);
     }
     setSemanticRules(productions);
@@ -138,6 +142,23 @@ TreeSymbol* parse(vector<Token>& program)
             if (lookup[0] == 's')
             {
                 stk.push(new StackSymbol(tokenToTerminal(program[c]), program[c].token_name));
+                switch(program[c].token_type) {
+                    case INT_LIT:
+                        get<0>(stk.top()->ts->dtype) = INT;
+                        get<1>(stk.top()->ts->dtype) = 0;
+                        break;
+                    case FLOAT_LIT:
+                        get<0>(stk.top()->ts->dtype) = FLOAT;
+                        get<1>(stk.top()->ts->dtype) = 0;
+                        break;
+                    // case BOOL_LIT:
+                    //     stk.top()->ts->dtype = {INT, 0};
+                    //     break;
+                    case STR_LIT:
+                        get<0>(stk.top()->ts->dtype) = STRING;
+                        get<1>(stk.top()->ts->dtype) = 0;
+                        break;
+                }
                 c++;
                 stk.push(new StackSymbol(stoi(lookup.substr(1, lookup.size() - 1))));
             }
@@ -154,15 +175,16 @@ TreeSymbol* parse(vector<Token>& program)
                     tmp.push(stk.top()->ts);
                     stk.pop();
                 }
-                vector<TreeSymbol*> newKids;
+
                 while(!tmp.empty()) {
-                    newKids.push_back(tmp.top());
+                    int i = toPush->ts->kids.size();
+                    if(p.beforeParseChildSemantic[i]) p.beforeParseChildSemantic[i](toPush->ts->kids, toPush->ts);
+                    tmp.top()->parent = toPush->ts;
+                    tmp.top()->parentIndex = i;
+                    toPush->ts->kids.push_back(tmp.top());
                     tmp.pop();
                 }
-                for(auto x : toPush->ts->kids) {
-                    newKids.push_back(x);
-                }
-                toPush->ts->kids = newKids;
+                if(p.afterParseSemantic) p.afterParseSemantic(toPush->ts->kids, toPush->ts);
                 stk.push(toPush);
             }
             else if(lookup == "acc") {
@@ -197,6 +219,22 @@ TreeSymbol* parse(vector<Token>& program)
     return stk.top()->ts;
 }
 
+void assertThirdKidExpIsBool(std::vector<TreeSymbol*>& kids, TreeSymbol *lhs) {
+    assert(get<0>(kids[2]->dtype) == BOOL);
+    assert(get<1>(kids[2]->dtype) == 0);
+}
+
+void setDtypeToRHS(std::vector<TreeSymbol*>& kids, TreeSymbol *lhs) {
+    lhs->dtype = kids[0]->dtype;
+}
+
 void setSemanticRules(vector<Production>& productions) {
-    
+    // productions[27].beforeParseChildSemantic[3] = assertThirdKidExpIsBool;
+    productions[100].afterParseSemantic = setDtypeToRHS;
+    productions[101].afterParseSemantic = setDtypeToRHS;
+    productions[102].afterParseSemantic = setDtypeToRHS;
+    productions[103].afterParseSemantic = setDtypeToRHS;
+    productions[104].afterParseSemantic = setDtypeToRHS;
+    productions[105].afterParseSemantic = setDtypeToRHS;
+    productions[106].afterParseSemantic = setDtypeToRHS;
 }

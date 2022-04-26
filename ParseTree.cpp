@@ -4,6 +4,6 @@
 using namespace std;
 
 void inorder(TreeSymbol *ts) {
-    cout << ts->type << endl;
+    cout << ts->type << " " << get<0>(ts->dtype) << ", " << get<1>(ts->dtype) << endl;
     for(auto x : ts->kids) inorder(x);
 }
