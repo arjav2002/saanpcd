@@ -524,7 +524,7 @@ Token numeric_literal(char ch)
     ptr--;
     return Token(INT_LIT, str, ln);
 }
-2 commits ahead, 2 commits 
+
 Token non_integers(char ch)
 {
     int ln = linenumber;
@@ -580,8 +580,9 @@ Token symbol(char ch, char ch2, int ln)
             ptr--;
     }
     
-    cout << "####### " << ch << "\t" << ch2 << endl;
-    if(ch2 == ' ') cout << isUnary << "\t" << isRel << "\t" << isAssign << "\n";   
+    // cout << "####### " << ch << "\t" << ch2 << endl;
+    // if(ch2 == ' ') cout << isUnary << "\t" << isRel << "\t" << isAssign << "\n";   
+    
     TokenType retType;
     if (isUnary)
     {
