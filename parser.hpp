@@ -3,11 +3,8 @@
 
 #include "Token.hpp"
 #include <vector>
+#include "ParseTree.hpp"
 
-enum TreeSymbolType {
-
-};
-
-int parse(std::vector<Token>& program);
+TreeSymbol* parse(std::vector<Token>& program);
 
 #endif

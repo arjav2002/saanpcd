@@ -22,6 +22,8 @@ struct TreeSymbol {
 struct Production {
     std::string lhs;
     std::vector<std::string> rhs;
+    std::vector<void (*)(std::vector<TreeSymbol> kids, TreeSymbol *lhs)> beforeParseChildSemantic;
+    void (*afterParseSemantic)(std::vector<TreeSymbol> *kids, TreeSymbol *lhs);
 };
 
 void inorder(TreeSymbol *ts);

@@ -45,7 +45,7 @@ bool isstate(string s)
     return true;
 }
 
-int parse(vector<Token>& program)
+TreeSymbol* parse(vector<Token>& program)
 {
     ifstream ifs;
     ifs.open("parse_table.csv");
@@ -104,12 +104,19 @@ int parse(vector<Token>& program)
         prodString.erase(0, pos + 1);
         while ((pos = prodString.find(' ')) != std::string::npos) {
             string str = prodString.substr(0, pos);
-            if(str != "''") p.rhs.push_back(str);
+            if(str != "''") {
+                p.rhs.push_back(str);
+                p.beforeParseChildSemantic.push_back(nullptr);
+            }
             prodString.erase(0, pos + 1);
         }
-        if(prodString.size() && prodString != "''") p.rhs.push_back(prodString);
+        if(prodString.size() && prodString != "''") {
+            p.rhs.push_back(prodString);
+            p.beforeParseChildSemantic.push_back(nullptr);
+        }
         productions.push_back(p);
     }
+    setSemanticRules(productions);
     ifs.close();
     stack<StackSymbol*> stk;
     stk.push(new StackSymbol(0));
@@ -186,5 +193,10 @@ int parse(vector<Token>& program)
     }
     stk.pop();
     inorder(stk.top()->ts);
-    return 0;
+
+    return stk.top()->ts;
+}
+
+void setSemanticRules(vector<Production>& productions) {
+    
 }
