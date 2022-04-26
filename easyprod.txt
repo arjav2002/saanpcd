@@ -1,83 +1,113 @@
 S' -> S
-S -> stmt_list S
+S -> stmt S
 S -> func_defn S
-S -> epsilon
-stmt_list -> epsilon
-stmt_list -> stmt_list stmt
-stmt -> proc_call ;
+S -> ''
 stmt -> assign ;
 stmt -> decl ;
 stmt -> loop_stmt
-stmt -> func_call ;
+stmt -> exp ;
 stmt -> return_stmt
 stmt -> cond
-decl -> dtype_keyword var_list 
+decl -> dtype var_list 
 var_list -> vname_identifier
-var_list -> var_list vl_delim_terminal vname_identifier 
-assign -> var_list assign_op_terminal exp_list ;
-loop_stmt -> loop_keyword ( exp ) { stmt_list }
-cond -> if_keyword ( exp ) { stmt_list }
-cond -> if_keyword ( exp ) { stmt_list } elseif orelse
-elseif -> elif_keyword ( exp ) { stmt_list }
-orelse -> else_keyword { stmt_list }
-return_stmt -> return_keyword exp ;
+var_list -> var_list , vname_identifier 
+assign -> var_list = exp_list
+assign -> vname_identifier #= exp 
+assign -> vname_identifier ~= exp 
+assign -> vname_identifier *= exp 
+assign -> vname_identifier /= exp 
+assign -> vname_identifier %= exp 
+assign -> vname_identifier MOD= exp 
+assign -> vname_identifier **= exp 
+assign -> vname_identifier &= exp 
+assign -> vname_identifier |= exp
+assign -> vname_identifier ^= exp 
+assign -> vname_identifier >>= exp 
+assign -> vname_identifier <<= exp
+loop_stmt -> loop ( exp ) { stmt_list } 
+if_stmt -> if ( exp ) { stmt_list } 
+cond -> if_stmt
+cond -> if_stmt elif_ladder else { stmt_list }
+elif_ladder -> ''
+elif_ladder -> elif_ladder elif ( exp ) { stmt_list }
+return_stmt -> return exp ;
 fname -> vname_identifier
-pname -> fname
-func_defn -> ftype_terminal fname ( param_list ) { func_body }
-func_body -> stmt_list return_stmt
-proc_defn -> proc_keyword pname ( param_list ) { stmt_list }
-param_list -> epsilon
+func_defn -> dtype fname ( param_list ) { stmt_list }
+stmt_list -> stmt stmt_list
+stmt_list -> ''
+param_list -> ''
+param_list -> regular_param_list
+param_list -> optional_param_list
 param_list -> regular_param_list , optional_param_list
 regular_param_list -> reg_param
 regular_param_list -> regular_param_list , reg_param
-reg_param -> dtype_keyword vname_identifier
-optional_param_list -> optional_param 
+reg_param -> dtype vname_identifier
+optional_param_list -> optional_param
 optional_param_list -> optional_param_list , optional_param
-optional_param -> dtype_keyword vname_identifier = exp
-exp_list -> exp
+optional_param -> dtype vname_identifier = exp
 exp_list -> exp_list , exp
-func_call -> fname ( arg_list )
-arg_list -> epsilon
+exp_list -> exp
+func_call -> vname_identifier ( arg_list )
+arg_list -> ''
 arg_list -> exp_list
 arg_list -> keyword_arg_list
 arg_list -> exp_list , keyword_arg_list
-keyword_arg_list -> assign
-keyword_arg_list -> keyword_arg_list , assign
-proc_call -> func_call
-exp -> un_exp
-exp -> exp bin_op_terminal exp
-exp -> ( exp )
-exp -> literal
-exp -> func_call
-// exp -> ( list_exp )
-// exp -> ( tuple_exp )
-// exp -> ( [ int_exp ] )
-un_exp -> un_op_terminal exp
-un_exp -> exp un_op_terminal
-literal -> int_lit
-literal -> char_lit
-literal -> bool_lit
-literal -> str_lit
-literal -> float_lit
-literal -> tuple_lit
+keyword_arg_list -> vname_identifier = exp
+keyword_arg_list -> keyword_arg_list , vname_identifier = exp
+exp -> exp11
+exp11 -> exp11 or exp10
+exp11 -> exp10 
+exp10 -> exp9
+exp10 -> exp10 and exp9
+exp9 -> exp8 
+exp9 -> exp9 | exp8 
+exp8 -> exp7
+exp8 -> exp8 ^ exp7 
+exp7 -> exp6
+exp7 -> exp7 & exp6
+exp6 -> exp6 == exp5 
+exp6 -> exp6 != exp5 
+exp6 -> exp6 is exp5 
+exp6 -> exp5 
+exp5 -> exp5 < exp4  
+exp5 -> exp5 <= exp4 
+exp5 -> exp5 > exp4 
+exp5 -> exp5 >= exp4 
+exp5 -> exp4 
+exp4 -> exp4 ~ exp3 
+exp4 -> exp4 # exp3 
+exp4 -> exp4 >> exp3 
+exp4 -> exp4 << exp3 
+exp4 -> exp3 
+exp3 -> exp3 * exp2 
+exp3 -> exp3 ** exp2 
+exp3 -> exp3 / exp2 
+exp3 -> exp3 MOD exp2
+exp3 -> exp3 % exp2 
+exp3 -> exp2 
+exp2 -> # exp2 
+exp2 -> ~ exp2 
+exp2 -> ~~ exp2 
+exp2 -> ## exp2 
+exp2 -> exp1 
+exp1 -> literal 
+exp1 -> func_call 
+exp1 -> vname_identifier 
+exp1 -> vname_identifier ## 
+exp1 -> vname_identifier ~~ 
+exp1 -> exp1 [ exp ] 
+exp1 -> ( exp ) 
+literal -> int_lit 
+literal -> char_lit 
+literal -> bool_lit 
+literal -> str_lit 
+literal -> float_lit 
+literal -> tuple_lit 
 literal -> list_lit
-int_lit -> dec_lit
-int_lit -> oct_lit
-int_lit -> hex_lit
-int_lit -> bin_lit
-char_lit -> ' char_terminal '
-char_list -> ' escape_seq_terminal '
-str_lit -> " multiple_char "
-multiple_char -> multiple_char char_lit
-multiple_char -> epsilon
-float_lit -> dec_lit . dec_terminal
-dec_lit -> ~ dec_terminal
-dec_lit -> dec_terminal
-oct_lit -> ~ oct_terminal
-oct_lit -> oct_terminal
-hex_lit -> ~ 0x hex
-hex_lit -> hex
-hex -> hex_digit_terminal hex
-hex -> epsilon
-tuple_lit -> ( exp_list )  
+tup_list -> exp , 
+tup_list -> tuplistb exp  
+tup_list -> tuplistb exp , 
+tuplistb -> tuplistb exp , 
+tuplistb -> exp , 
+tuple_lit -> ( tup_list )  
 list_lit -> [ exp_list ]

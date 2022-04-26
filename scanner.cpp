@@ -22,91 +22,47 @@ bool EXIT_FLAG = false;  // A flag for an end of file reached in scanning
 bool ERROR_FLAG = false; // A flag for an error in scanning
 string ERROR_LOG = "";   // Logged statment for an error in scanning
 
-set<string> Keywords = {"int", "string", "char", "float", "bool", "tuple", "list", "proc", "void", "if", "elif", "else", "loop", "break", "continue", "return", "and", "is", "nor", "xor", "nand", "or", "true", "True", "tRue", "TRue", "trUe", "TrUe", "tRUe", "TRUe", "truE", "TruE", "tRuE", "TRuE", "trUE", "TrUE", "tRUE", "TRUE", "false", "False", "fAlse", "FAlse", "faLse", "FaLse", "fALse", "FALse", "falSe", "FalSe", "fAlSe", "FAlSe", "faLSe", "FaLSe", "fALSe", "FALSe", "falsE", "FalsE", "fAlsE", "FAlsE", "faLsE", "FaLsE", "fALsE", "FALsE", "falSE", "FalSE", "fAlSE", "FAlSE", "faLSE", "FaLSE", "fALSE", "FALSE"};
+set<string> Keywords = {"if", "elif", "else", "loop", "break", "continue", "return", "and", "is", "nor", "xor", "nand", "or", "true", "True", "tRue", "TRue", "trUe", "TrUe", "tRUe", "TRUe", "truE", "TruE", "tRuE", "TRuE", "trUE", "TrUE", "tRUE", "TRUE", "false", "False", "fAlse", "FAlse", "faLse", "FaLse", "fALse", "FALse", "falSe", "FalSe", "fAlSe", "FAlSe", "faLSe", "FaLSe", "fALSe", "FALSe", "falsE", "FalsE", "fAlsE", "FAlsE", "faLsE", "FaLsE", "fALsE", "FALsE", "falSE", "FalSE", "fAlSE", "FAlSE", "faLSE", "FaLSE", "fALSE", "FALSE"};
+set<string> Datatypes = {"int", "string", "char", "float", "bool", "proc", "void"};
 set<char> Symbols = {'#', '~', '*', '/', '%', ',', ';', '!', '&', '|', '^', '=', '<', '>', '\\', '}', '{', '[', ']', '(', ')', '_', '.', '"', '\''};
 set<char> UnaryOpPrefixes = {'#', '~'};                                     // suffix is character itself
 set<char> RelationalPrefixes = {'>', '<', '='};                             // suffix is =
 set<char> AssignOpPrefixes = {'#', '~', '*', '/', '!', '%', '&', '|', '^'}; // suffix is =
 set<char> EscapeSequences = {'a', 'b', 'f', 'n', 'r', 't', 'v', '\\', '\'', '\"', '?', '0'};
-map<string, int> token_map;
 
-enum TokenType
-{
-    KEYWORD,
-    SYMBOL,
-    UN_OP,
-    REL_OP,
-    ASSIGN_OP,
-    IDENTIFIER,
-    INT_LIT,
-    CHAR_LIT,
-    STR_LIT,
-    FLOAT_LIT,
-    DEFAULT,
-    INT,
-    STRING,
-    CHAR,
-    FLOAT,
-    BOOL,
-    TUPLE,
-    LIST,
-    PROC,
-    VOID,
-    IF,
-    ELIF,
-    ELSE,
-    LOOP,
-    BREAK,
-    CONTINUE,
-    RETURN,
-    AND,
-    IS,
-    NOR,
-    XOR,
-    NAND,
-    OR,
-    TRUE,
-    FALSE,
-    HASH,
-    TILDE,
-    ASTERIX,
-    SLASH,
-    MODULO,
-    COMMA,
-    SEMICOLON,
-    EXCLAMATION,
-    AMPERSAND,
-    PIPE,
-    KARAT,
-    EQUAL,
-    LESSTHAN,
-    GREATERTHEN,
-    BACKSLASH,
-    RIGHTANGULAR,
-    LEFTANGULAR,
-    RIGHTSQUARE,
-    LEFTSQUARE,
-    LEFTROUND,
-    RIGHTROUND,
-    UNDERSCORE,
-    DOT,
-    DOUBLEQUOTE,
-    SINGLEQUOTE,
-    INCREMENT,
-    DECREMENT,
-    DOUBLEEQUAL
-};
+#include "scanner.hpp"
 
-map<string, TokenType> stringToTokenMap;
-void doStringToTokenMapping();
+bool isAlphabet(char ch);
+bool isNumber(char ch);
+bool isSymbol(char ch);
+bool isKeyword(string s);
+bool isDatatype(string s);
 
-string tokenToString(TokenType tt)
+void lexical_error(string error, int ln = linenumber);
+char nextChar(bool skip_whitespace = true);
+bool nextLine();
+
+Token hex_literal(char ch);
+Token oct_literal(char ch);
+Token float_literal(string str, char ch);
+Token numeric_literal(char ch);
+Token non_integers(char ch);
+Token symbol(char ch, char ch2 = -1, int ln = -1);
+Token alphanumeric(char ch); // Extracts a lexeme which could be a varname or keyword
+Token char_literal();
+Token string_literal();
+pair<char, bool> comment();
+vector<Token> token_list;
+
+std::string tokenToString(TokenType tt)
 {
     switch (tt)
     {
     case SYMBOL:
         return "SYMBOL";
         break;
+    case KEYWORD:
+        return "KEYWORD";
     case UN_OP:
         return "UN_OP";
         break;
@@ -134,28 +90,8 @@ string tokenToString(TokenType tt)
     case DEFAULT:
         return "DEFAULT";
         break;
-
-    case INT:
-        return "INT";
-        break;
-    case STRING:
-        return "STRING";
-        break;
-    case CHAR:
-        return "CHAR";
-        break;
-    case FLOAT:
-        return "FLOAT";
-        break;
-    case BOOL:
-        return "BOOL";
-        break;
-    case TUPLE:
-        return "TUPLE";
-        break;
-    case LIST:
-        return "LIST";
-        break;
+    case DTYPE:
+        return "DTYPE";
     case PROC:
         return "PROC";
         break;
@@ -225,45 +161,41 @@ string tokenToString(TokenType tt)
     case DOUBLEEQUAL:
         return "DOUBLEEQUAL";
         break;
+    case $:
+        return "$";
+        break;
     }
 }
 
-struct Token
-{
-    TokenType token_type;
-    string token_name;
-    int token_linenumber;
-    Token(TokenType tn = DEFAULT, string tname = "", int ln = -1)
-    {
-        token_type = tn;
-        token_name = tname;
-        token_linenumber = ln;
+std::string tokenToTerminal(Token t) {
+    switch(t.token_type) {
+        case DTYPE:
+            return "dtype";
+        case IDENTIFIER:
+            return "vname_identifier";
+        case KEYWORD:
+            return t.token_name;
+        case SYMBOL:
+            return t.token_name;
+        case STR_LIT:
+            return "str_lit";
+        case CHAR_LIT:
+            return "char_lit";
+        case INT_LIT:
+            return "int_lit";
+        case FLOAT_LIT:
+            return "float_lit";
+        case $:
+            return "$";
+        default:
+            cout << t.token_name << " " << t.token_linenumber << " " << t.token_type << endl;
+            return "Error!";
     }
-};
-
-bool isAlphabet(char ch);
-bool isNumber(char ch);
-bool isSymbol(char ch);
-bool isKeyword(string s);
-
-void lexical_error(string error, int ln = linenumber);
-char nextChar(bool skip_whitespace = true);
-bool nextLine();
-
-Token hex_literal(char ch);
-Token oct_literal(char ch);
-Token float_literal(string str, char ch);
-Token numeric_literal(char ch);
-Token non_integers(char ch);
-Token symbol(char ch, char ch2 = -1, int ln = -1);
-Token alphanumeric(char ch); // Extracts a lexeme which could be a varname or keyword
-Token char_literal();
-Token string_literal();
-pair<char, bool> comment();
+    return "ERROR:!";
+}
 
 bool scanner()
 {
-    vector<Token> token_list;
     string line = "";
     char ch = nextChar();
 
@@ -319,39 +251,10 @@ bool scanner()
     return true;
 }
 
-int main(int argc, char *argv[])
-{
-
+vector<Token> scan(std::string filename) {
     srand(16);
-    for (auto el : Keywords)
-    {
-        // string str = el;
-        // std::transform(str.begin(), str.end(),str.begin(), ::toupper);
-        token_map[el] = KEYWORD;
-    }
-    for (auto el : Symbols)
-        token_map[string(1, el)] = SYMBOL;
-    for (auto e1 : UnaryOpPrefixes)
-    {
-        string str = string(1, e1);
-        str += e1;
-        token_map[str] = UN_OP;
-    }
-    for (auto e1 : RelationalPrefixes)
-    {
-        string str = string(1, e1);
-        str += '=';
-        token_map[str] = REL_OP;
-    }
-    for (auto e1 : AssignOpPrefixes)
-    {
-        string str = string(1, e1);
-        str += '=';
-        token_map[str] = ASSIGN_OP;
-    }
-    doStringToTokenMapping();
 
-    fin.open(argv[1]);
+    fin.open(filename);
 
     cout << "The scanning is commencing... " << endl;
     if (!scanner())
@@ -362,7 +265,7 @@ int main(int argc, char *argv[])
 
     fin.close();
 
-    return 0;
+    return token_list;
 }
 
 bool nextLine()
@@ -537,32 +440,32 @@ Token symbol(char ch, char ch2, int ln)
             ptr--;
     }
 
-    TokenType retType;
-    if (isUnary)
-    {
-        retType = UN_OP;
-        if (str[0] == '#')
-            retType = INCREMENT;
-        else
-            retType = DECREMENT;
-    }
-    else if (isRel) // retType = REL_OP;
-    {
-        if (str[0] == '<')
-            retType = LEFTANGULAR;
-        if (str[0] == '>')
-            retType = RIGHTANGULAR;
-        if (str[0] == '=')
-            retType = DOUBLEEQUAL;
-    }
-    else if (isAssign) // retType = ASSIGN_OP;
-    {
-        cout << "####### " << str << endl;
-        retType = ASSIGN_OP;
-    }
-    else
-        retType = SYMBOL;
-    return Token(retType, str, ln);
+    // TokenType retType;
+    // if (isUnary)
+    // {
+    //     retType = UN_OP;
+    //     if (str[0] == '#')
+    //         retType = INCREMENT;
+    //     else
+    //         retType = DECREMENT;
+    // }
+    // else if (isRel) // retType = REL_OP;
+    // {
+    //     if (str[0] == '<')
+    //         retType = LEFTANGULAR;
+    //     if (str[0] == '>')
+    //         retType = RIGHTANGULAR;
+    //     if (str[0] == '=')
+    //         retType = DOUBLEEQUAL;
+    // }
+    // else if (isAssign) // retType = ASSIGN_OP;
+    // {
+    //     cout << "####### " << str << endl;
+    //     retType = ASSIGN_OP;
+    // }
+    // else
+    //     retType = SYMBOL;
+    return Token(SYMBOL, str, ln);
 }
 
 // Extracts a lexeme which could be a varname or keyword
@@ -586,11 +489,13 @@ Token alphanumeric(char ch)
     {
         string caps = str;
         std::transform(caps.begin(), caps.end(), caps.begin(), ::toupper);
-        return Token(stringToTokenMap[caps], str, ln);
-        // return Token(KEYWORD, str, ln);
+        return Token(KEYWORD, str, ln);
     }
-    else
-        return Token(IDENTIFIER, str, ln);
+
+    if (isDatatype(str))
+        return Token(DTYPE, str, ln);
+
+    return Token(IDENTIFIER, str, ln);
 }
 
 Token char_literal()
@@ -671,65 +576,6 @@ pair<char, bool> comment()
 
 // UTILITY FUNCTION DEFINITIONS
 
-void doStringToTokenMapping()
-{
-    // stringToTokenMap[keyword] = TokenType::keyword;
-    stringToTokenMap["INT"] = TokenType::INT;
-    stringToTokenMap["STRING"] = TokenType::STRING;
-    stringToTokenMap["CHAR"] = TokenType::CHAR;
-    stringToTokenMap["FLOAT"] = TokenType::FLOAT;
-    stringToTokenMap["BOOL"] = TokenType::BOOL;
-    stringToTokenMap["TUPLE"] = TokenType::TUPLE;
-    stringToTokenMap["LIST"] = TokenType::LIST;
-    stringToTokenMap["PROC"] = TokenType::PROC;
-    stringToTokenMap["VOID"] = TokenType::VOID;
-    stringToTokenMap["IF"] = TokenType::IF;
-    stringToTokenMap["ELIF"] = TokenType::ELIF;
-    stringToTokenMap["ELSE"] = TokenType::ELSE;
-    stringToTokenMap["LOOP"] = TokenType::LOOP;
-    stringToTokenMap["BREAK"] = TokenType::BREAK;
-    stringToTokenMap["CONTINUE"] = TokenType::CONTINUE;
-    stringToTokenMap["RETURN"] = TokenType::RETURN;
-    stringToTokenMap["AND"] = TokenType::AND;
-    stringToTokenMap["IS"] = TokenType::IS;
-    stringToTokenMap["NOR"] = TokenType::NOR;
-    stringToTokenMap["XOR"] = TokenType::XOR;
-    stringToTokenMap["NAND"] = TokenType::NAND;
-    stringToTokenMap["OR"] = TokenType::OR;
-    stringToTokenMap["TRUE"] = TokenType::TRUE;
-    stringToTokenMap["FALSE"] = TokenType::FALSE;
-
-    stringToTokenMap["HASH"] = TokenType::HASH;
-    stringToTokenMap["TILDE"] = TokenType::TILDE;
-    stringToTokenMap["ASTERIX"] = TokenType::ASTERIX;
-    stringToTokenMap["SLASH"] = TokenType::SLASH;
-    stringToTokenMap["MODULO"] = TokenType::MODULO;
-    stringToTokenMap["COMMA"] = TokenType::COMMA;
-    stringToTokenMap["SEMICOLON"] = TokenType::SEMICOLON;
-    stringToTokenMap["EXCLAMATION"] = TokenType::EXCLAMATION;
-    stringToTokenMap["AMPERSAND"] = TokenType::AMPERSAND;
-    stringToTokenMap["PIPE"] = TokenType::PIPE;
-    stringToTokenMap["KARAT"] = TokenType::KARAT;
-    stringToTokenMap["EQUAL"] = TokenType::EQUAL;
-    stringToTokenMap["DOUBLEEQUAL"] = TokenType::DOUBLEEQUAL;
-    stringToTokenMap["LESSTHAN"] = TokenType::LESSTHAN;
-    stringToTokenMap["GREATERTHEN"] = TokenType::GREATERTHEN;
-    stringToTokenMap["BACKSLASH"] = TokenType::BACKSLASH;
-    stringToTokenMap["RIGHTANGULAR"] = TokenType::RIGHTANGULAR;
-    stringToTokenMap["LEFTANGULAR"] = TokenType::LEFTANGULAR;
-    stringToTokenMap["RIGHTSQUARE"] = TokenType::RIGHTSQUARE;
-    stringToTokenMap["LEFTSQUARE"] = TokenType::LEFTSQUARE;
-    stringToTokenMap["LEFTROUND"] = TokenType::LEFTROUND;
-    stringToTokenMap["RIGHTROUND"] = TokenType::RIGHTROUND;
-    stringToTokenMap["UNDERSCORE"] = TokenType::UNDERSCORE;
-    stringToTokenMap["DOT"] = TokenType::DOT;
-    stringToTokenMap["DOUBLEQUOTE"] = TokenType::DOUBLEQUOTE;
-    stringToTokenMap["SINGLEQUOTE"] = TokenType::SINGLEQUOTE;
-
-    stringToTokenMap["INCREMENT"] = TokenType::INCREMENT;
-    stringToTokenMap["DECREMENT"] = TokenType::DECREMENT;
-}
-
 bool isAlphabet(char ch)
 {
     return ((ch == '_') || ('a' <= ch && ch <= 'z') || ('A' <= ch && ch <= 'Z'));
@@ -743,6 +589,10 @@ bool isNumber(char ch)
 bool isSymbol(char ch)
 {
     return Symbols.find(ch) != Symbols.end();
+}
+
+bool isDatatype(string s) {
+    return Datatypes.find(s) != Datatypes.end();
 }
 
 bool isKeyword(string s)
