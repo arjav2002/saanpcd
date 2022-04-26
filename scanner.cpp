@@ -94,6 +94,18 @@ enum TokenType
     SINGLEQUOTE,
     INCREMENT,
     DECREMENT,
+
+    // Assignment Operators
+    ADDASSIGN,
+    SUBASSIGN,
+    MULASSIGN,
+    DIVASSIGN,
+    NOTEQUAL,
+    MODASSIGN,
+    ANDASSIGN,
+    ORASSIGN,
+    EXPASSIGN,
+
     DOUBLEEQUAL
 };
 
@@ -225,6 +237,37 @@ string tokenToString(TokenType tt)
     case DOUBLEEQUAL:
         return "DOUBLEEQUAL";
         break;
+
+    case ADDASSIGN:
+        return "ADDASSIGN";
+        break;
+    case SUBASSIGN:
+        return "SUBASSIGN";
+        break;
+    case MULASSIGN:
+        return "MULASSIGN";
+        break;
+    case DIVASSIGN:
+        return "DIVASSIGN";
+        break;
+    case NOTEQUAL:
+        return "NOTEQUAL";
+        break;
+    case MODASSIGN:
+        return "MODASSIGN";
+        break;
+    case ANDASSIGN:
+        return "ANDASSIGN";
+        break;
+    case ORASSIGN:
+        return "ORASSIGN";
+        break;
+    case EXPASSIGN:
+        return "ORASSIGN";
+        break;
+    
+    default:
+        return "-1";
     }
 }
 
@@ -481,7 +524,7 @@ Token numeric_literal(char ch)
     ptr--;
     return Token(INT_LIT, str, ln);
 }
-
+2 commits ahead, 2 commits 
 Token non_integers(char ch)
 {
     int ln = linenumber;
@@ -508,7 +551,8 @@ Token non_integers(char ch)
 Token symbol(char ch, char ch2, int ln)
 {
     string str = string(1, ch);
-
+    cout << "####### " << str << endl;
+    
     bool isUnaryPrefix = UnaryOpPrefixes.find(ch) != UnaryOpPrefixes.end();
     bool isRelOrAssignPrefix = RelationalPrefixes.find(ch) != RelationalPrefixes.end() || AssignOpPrefixes.find(ch) != AssignOpPrefixes.end();
     bool isUnary = false;  // isUnary or isRelAssign
@@ -522,8 +566,7 @@ Token symbol(char ch, char ch2, int ln)
         if (ch2 == -1)
             ch2 = nextChar(false);
         //   if(ch2 == '*' || ch2 == '/')
-        if (ln != linenumber)
-        {
+        if (ln != linenumber){
             ptr--;
         }
         else if ((ch2 == ch && isUnaryPrefix) || (ch2 == '=' && isRelOrAssignPrefix))
@@ -536,7 +579,9 @@ Token symbol(char ch, char ch2, int ln)
         else
             ptr--;
     }
-
+    
+    cout << "####### " << ch << "\t" << ch2 << endl;
+    if(ch2 == ' ') cout << isUnary << "\t" << isRel << "\t" << isAssign << "\n";   
     TokenType retType;
     if (isUnary)
     {
@@ -555,10 +600,22 @@ Token symbol(char ch, char ch2, int ln)
         if (str[0] == '=')
             retType = DOUBLEEQUAL;
     }
-    else if (isAssign) // retType = ASSIGN_OP;
-    {
-        cout << "####### " << str << endl;
-        retType = ASSIGN_OP;
+    else if (isAssign) {
+        // cout << "####### " << str << endl;
+        // retType = ASSIGN_OP;
+        
+        switch(str[0]){
+            case '#': retType = ADDASSIGN; break;
+            case '~': retType = SUBASSIGN; break;
+            case '*': retType = MULASSIGN; break;
+            case '/': retType = DIVASSIGN; break;
+            case '!': retType = NOTEQUAL; break;
+            case '%': retType = MODASSIGN; break;
+            case '&': retType = ANDASSIGN; break;
+            case '|': retType = ORASSIGN; break;
+            case '^': retType = EXPASSIGN; break;
+            default : lexical_error("Unknown assignment op found, ln"); 
+        }
     }
     else
         retType = SYMBOL;
@@ -665,8 +722,7 @@ pair<char, bool> comment()
             }
         }
     }
-    else
-        return {ch, false};
+    return {ch, false};
 }
 
 // UTILITY FUNCTION DEFINITIONS
@@ -726,6 +782,16 @@ void doStringToTokenMapping()
     stringToTokenMap["DOUBLEQUOTE"] = TokenType::DOUBLEQUOTE;
     stringToTokenMap["SINGLEQUOTE"] = TokenType::SINGLEQUOTE;
 
+    stringToTokenMap["ADDASSIGN"] = TokenType::ADDASSIGN;
+    stringToTokenMap["SUBASSIGN"] = TokenType::SUBASSIGN;
+    stringToTokenMap["MULASSIGN"] = TokenType::MULASSIGN;
+    stringToTokenMap["DIVASSIGN"] = TokenType::DIVASSIGN;
+    stringToTokenMap["NOTEQUAL"] = TokenType::NOTEQUAL;
+    stringToTokenMap["MODASSIGN"] = TokenType::MODASSIGN;
+    stringToTokenMap["ANDASSIGN"] = TokenType::ANDASSIGN;
+    stringToTokenMap["ORASSIGN"] = TokenType::ORASSIGN;
+    stringToTokenMap["EXPASSIGN"] = TokenType::EXPASSIGN;
+    
     stringToTokenMap["INCREMENT"] = TokenType::INCREMENT;
     stringToTokenMap["DECREMENT"] = TokenType::DECREMENT;
 }
