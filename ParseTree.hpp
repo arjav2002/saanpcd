@@ -18,8 +18,8 @@ struct TreeSymbol {
     int prodNo=-1;
     std::vector<TreeSymbol*> kids;
     std::tuple<DataType, int> rtype;
-    std::vector<std::string> varnames;
-    std::vector<std::tuple<DataType, int>> dtypes;
+    std::vector<std::string> varnames, varnames2;
+    std::vector<std::tuple<DataType, int>> dtypes, dtypes2;
 };
 
 struct Production {
