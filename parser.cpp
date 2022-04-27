@@ -16,7 +16,7 @@ using namespace std;
 
 vector<Production> productions;
 stack<map<string, tuple<DataType, int>>> variableTable;
-stack<map<string, pair<vector<tuple<DataType, int>>, vector<tuple<DataType, int>>>>> functionTable;
+stack<map<string, tuple<tuple<DataType, int>, vector<tuple<DataType, int>>, vector<tuple<DataType, int>>>>> functionTable;
 
 void setSemanticRules(vector<Production>& productions);
 struct StackSymbol {
@@ -67,7 +67,7 @@ TreeSymbol* parse(vector<Token>& program)
 {
     // pushing global scope
     variableTable.push(map<string, tuple<DataType, int>>());
-    functionTable.push(map<string, pair<vector<tuple<DataType, int>>, vector<tuple<DataType, int>>>>());
+    functionTable.push(map<string, tuple<tuple<DataType, int>, vector<tuple<DataType, int>>, vector<tuple<DataType, int>>>>());
 
     ifstream ifs;
     ifs.open("parse_table.csv");
@@ -234,6 +234,7 @@ void assertThirdKidIsBool(TreeSymbol *lhs) {
 }
 
 void setDtypeToFirstKid(TreeSymbol *lhs) {
+    cout << lhs->kids[0]->type << " " << lhs->kids[0]->value << " has dtype " << get<0>(lhs->kids[0]->dtype) << endl;
     lhs->dtype = lhs->kids[0]->dtype;
 }
 
@@ -297,6 +298,7 @@ tuple<DataType, int> getVarDtype(string v) {
 
 void setDtypeFromFirstKidVarSymbolTable(TreeSymbol *lhs) {
     lhs->dtype = getVarDtype(lhs->kids[0]->value);
+    cout << lhs->kids[0]->value << " has dtype " << get<0>(lhs->dtype) << endl;
 }
 
 void checkRelationalOp(TreeSymbol *lhs) {
@@ -317,13 +319,14 @@ void cleanUpScope(TreeSymbol *lhs) {
 
 void pushNewScope(TreeSymbol *lhs) {
     variableTable.push(map<string, tuple<DataType, int>>());
-    functionTable.push(map<string, pair<vector<tuple<DataType, int>>, vector<tuple<DataType, int>>>>());
+    functionTable.push(map<string, tuple<tuple<DataType, int>, vector<tuple<DataType, int>>, vector<tuple<DataType, int>>>>());
 }
 
 void setUpScope(TreeSymbol *lhs) {
-    pair<vector<tuple<DataType, int>>, vector<tuple<DataType, int>>> args;
-    args.first = lhs->kids[3]->dtypes;
-    args.second = lhs->kids[3]->dtypes2;
+    tuple<tuple<DataType, int>, vector<tuple<DataType, int>>, vector<tuple<DataType, int>>> args;
+    get<0>(args) = lhs->kids[0]->dtype;
+    get<1>(args) = lhs->kids[3]->dtypes;
+    get<2>(args) = lhs->kids[3]->dtypes2;
     string fname = lhs->kids[1]->value;
 
     if(functionTable.top().find(fname) != functionTable.top().end()) {
@@ -401,28 +404,31 @@ void setDtypeListToFirstKid(TreeSymbol *lhs) {
 void functionCall(TreeSymbol *lhs) {
     bool found = false;
     
-    stack<map<string, pair<vector<tuple<DataType, int>>, vector<tuple<DataType, int>>>>> tmp;
+    stack<map<string, tuple<tuple<DataType, int>, vector<tuple<DataType, int>>, vector<tuple<DataType, int>>>>> tmp;
     while(functionTable.size()) {
         auto x = functionTable.top().find(lhs->kids[0]->value);
         if(x != functionTable.top().end()) {
             auto args = (*x).second;
-            if(args.first.size() <= lhs->kids[2]->dtypes.size()) {
+            auto regargs = get<1>(args);
+            auto kwargs = get<2>(args);
+            if(regargs.size() <= lhs->kids[2]->dtypes.size()) {
                 bool ok = true;
-                for(int i = 0; i < args.first.size(); i++) {
-                    if(args.first[i] != lhs->kids[2]->dtypes[i]) {
+                for(int i = 0; i < regargs.size(); i++) {
+                    if(regargs[i] != lhs->kids[2]->dtypes[i]) {
                         ok = false;
                         break;
                     }
                 }
-                if(ok && lhs->kids[2]->dtypes.size()-args.first.size() <= args.second.size()) {
-                    for(int i = 0; i < lhs->kids[2]->dtypes.size()-args.first.size(); i++) {
-                        if(args.second[i] != lhs->kids[2]->dtypes[i + args.first.size()]) {
+                if(ok && lhs->kids[2]->dtypes.size()-regargs.size() <= kwargs.size()) {
+                    for(int i = 0; i < lhs->kids[2]->dtypes.size()-regargs.size(); i++) {
+                        if(kwargs[i] != lhs->kids[2]->dtypes[i + regargs.size()]) {
                             ok = false;
                             break;
                         }
                     }
                     if(ok) {
                         found = true;
+                        lhs->dtype = get<0>(args);
                         break;
                     }
                 }
@@ -451,6 +457,7 @@ void functionCall(TreeSymbol *lhs) {
 void checkArithmeticOp(TreeSymbol *lhs) {
     DataType d = get<0>(lhs->kids[0]->dtype);
     DataType toSet = INT;
+    cout << "Arith op: " << lhs->kids[1]->type << endl;
     assert(d == INT || d == FLOAT);
     if(d == FLOAT) toSet = FLOAT;
     assert(get<1>(lhs->kids[0]->dtype) == 0);
@@ -460,6 +467,10 @@ void checkArithmeticOp(TreeSymbol *lhs) {
     assert(get<1>(lhs->kids[2]->dtype) == 0);
     get<0>(lhs->dtype) = toSet;
     get<1>(lhs->dtype) = 0;
+}
+
+void setDtypeToSecondKid(TreeSymbol *lhs) {
+    lhs->dtype = lhs->kids[1]->dtype;
 }
 
 void setSemanticRules(vector<Production>& productions) {
@@ -502,6 +513,12 @@ void setSemanticRules(vector<Production>& productions) {
     productions[77].afterSemanticParse = checkArithmeticOp;
     productions[78].afterSemanticParse = checkArithmeticOp;
     productions[81].afterSemanticParse = setDtypeToFirstKid;
+    productions[82].afterSemanticParse = checkArithmeticOp;
+    productions[83].afterSemanticParse = checkArithmeticOp;
+    productions[84].afterSemanticParse = checkArithmeticOp;
+    productions[85].afterSemanticParse = checkArithmeticOp;
+    productions[86].afterSemanticParse = checkArithmeticOp;
+    productions[78].afterSemanticParse = checkArithmeticOp;
     productions[87].afterSemanticParse = setDtypeToFirstKid;
     productions[92].afterSemanticParse = setDtypeToFirstKid;
     productions[93].afterSemanticParse = setDtypeToFirstKid;
@@ -509,6 +526,7 @@ void setSemanticRules(vector<Production>& productions) {
     productions[95].afterSemanticParse = setDtypeFromFirstKidVarSymbolTable;
     productions[96].beforeSemanticParseChild[1] = setDtypeFromFirstKidVarSymbolTable;
     productions[97].beforeSemanticParseChild[1] = setDtypeFromFirstKidVarSymbolTable;
+    productions[99].afterSemanticParse = setDtypeToSecondKid;
     productions[100].afterSemanticParse = setDtypeToFirstKid;
     productions[101].afterSemanticParse = setDtypeToFirstKid;
     productions[102].afterSemanticParse = setDtypeToFirstKid;
