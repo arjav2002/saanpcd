@@ -70,12 +70,13 @@ struct Token
 {
     TokenType token_type;
     std::string token_name;
-    int token_linenumber;
-    Token(TokenType tn = DEFAULT, std::string tname = "", int ln = -1)
+    int token_linenumber, dims;
+    Token(TokenType tn = DEFAULT, std::string tname = "", int ln = -1, int d = -1)
     {
         token_type = tn;
         token_name = tname;
         token_linenumber = ln;
+        dims = d;
     }
 };
 
