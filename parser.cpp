@@ -97,18 +97,7 @@ TreeSymbol* parse(vector<Token>& program)
     }
     parse_table.erase(parse_table.end() - 1);
     ifs.close();
-    // for (int i = 0; i < parse_table.size(); ++i)
-    // {
-    //     for (int j = 0; j < parse_table[i].size(); j++)
-    //     {
-    //         if (parse_table[i][j].length())
-    //             cout << parse_table[i][j] << "\t";
-    //         else
-    //             cout << "0 ";
-    //     }
-    //     cout << "\n";
-    // }
-    // return 0;
+
     map<std::string, int> m;
     for (int i = 0; i < parse_table[0].size(); i++)
         m[parse_table[0][i]] = i;
@@ -142,20 +131,13 @@ TreeSymbol* parse(vector<Token>& program)
     ifs.close();
     stack<StackSymbol*> stk;
     stk.push(new StackSymbol(0));
-    //stk.push(new StackSymbol("$", ""));
     int c = 0;
     std::string lookup;
     while (c < program.size())
     {
         if (stk.top()->is_state)
         {
-            // cout << "is state" << endl;
             lookup = parse_table[stk.top()->state+1][m[tokenToTerminal(program[c])]];
-            // cout << tokenToString(program[c].token_type) << endl;
-            // cout << program[c].token_name << endl;
-            // cout << tokenToTerminal(program[c]) << endl;
-            // cout << m[tokenToTerminal(program[c])] << endl;
-            // cout << stk.top()->state+1 << endl;
             assert(lookup != "x");
             if (lookup[0] == 's')
             {
@@ -260,11 +242,23 @@ void initVarList(TreeSymbol *lhs) {
 }
 
 void appendToVarList(TreeSymbol *lhs) {
+    lhs->varnames = lhs->kids[0]->varnames;
+    lhs->kids[0]->varnames.clear();
     lhs->varnames.push_back(lhs->kids[2]->value);
 }
 
+void initDtypeList(TreeSymbol *lhs) {
+    lhs->dtypes.push_back(lhs->kids[0]->dtype);
+}
+
+void appendDtypeListFromThirdKid(TreeSymbol *lhs) {
+    lhs->dtypes = lhs->kids[0]->dtypes;
+    lhs->kids[0]->dtypes.clear();
+    lhs->dtypes.push_back(lhs->kids[2]->dtype);
+}
+
 void declareVariables(TreeSymbol *lhs) {
-    for(string varname : lhs->varnames) {
+    for(string varname : lhs->kids[1]->varnames) {
         if(variableTable.top().find(varname) != variableTable.top().end()) {
             cout << "Variable " << varname << " has been redeclared in scope level " << variableTable.size() << endl;
             assert(variableTable.top().find(varname) == variableTable.top().end());
@@ -273,15 +267,16 @@ void declareVariables(TreeSymbol *lhs) {
     }
 }
 
-void setDtypeFromFirstKidVarSymbolTable(TreeSymbol *lhs) {
+tuple<DataType, int> getVarDtype(string v) {
     bool found = false;
     stack<map<string, tuple<DataType, int>>> tmp;
+    tuple<DataType, int> toRet;
     while(variableTable.size()) {
         auto currScope = variableTable.top();
 
-        if(currScope.find(lhs->kids[0]->value) != currScope.end()) {
+        if(currScope.find(v) != currScope.end()) {
             found = true;
-            lhs->dtype = currScope[lhs->kids[0]->value];
+            toRet = currScope[v];
             break;
         }
         tmp.push(variableTable.top());
@@ -293,9 +288,15 @@ void setDtypeFromFirstKidVarSymbolTable(TreeSymbol *lhs) {
     }
 
     if(!found) {
-        cout << "Variable " << lhs->kids[0]->value << " not found in any scope" << endl;
+        cout << "Variable " << v << " not found in any scope" << endl;
         assert(found);
     }
+
+    return toRet;
+}
+
+void setDtypeFromFirstKidVarSymbolTable(TreeSymbol *lhs) {
+    lhs->dtype = getVarDtype(lhs->kids[0]->value);
 }
 
 void checkRelationalOp(TreeSymbol *lhs) {
@@ -345,10 +346,26 @@ void appendToRegParamList(TreeSymbol *lhs) {
     lhs->dtypes.push_back(lhs->kids[2]->dtype);
 }
 
+void multipleAssign(TreeSymbol *lhs) {
+    if(lhs->kids[0]->varnames.size() != lhs->kids[2]->dtypes.size()) {
+        cout << "Unequal number of variables for assignment" << endl;
+        assert(lhs->kids[0]->varnames.size() == lhs->kids[2]->dtypes.size());
+    }
+    for(int i = 0; i < lhs->kids[0]->varnames.size(); i++) {
+        string x = lhs->kids[0]->varnames[i];
+        auto dtype = getVarDtype(x);
+        if(dtype != lhs->kids[2]->dtypes[i]) {
+            cout << "Attempt to assign " << get<0>(lhs->kids[2]->dtypes[i]) << " to " << x << " of type " << get<0>(dtype) << endl;
+            assert(dtype == lhs->kids[2]->dtypes[i]);
+        }
+    }
+}
+
 void setSemanticRules(vector<Production>& productions) {
     productions[10].afterSemanticParse = declareVariables;
     productions[11].afterSemanticParse = initVarList;
     productions[12].afterSemanticParse = appendToVarList;
+    productions[13].afterSemanticParse = multipleAssign;
     productions[27].beforeSemanticParseChild[3] = assertThirdKidIsBool;
     productions[27].beforeSemanticParseChild[5] = pushNewScope;
     productions[27].afterSemanticParse = cleanUpScope;
@@ -363,6 +380,8 @@ void setSemanticRules(vector<Production>& productions) {
     productions[42].afterSemanticParse = initRegParamList;
     productions[43].afterSemanticParse = appendToRegParamList;
     productions[44].afterSemanticParse = regParam;
+    productions[48].afterSemanticParse = appendDtypeListFromThirdKid;
+    productions[49].afterSemanticParse = initDtypeList;
     productions[57].afterSemanticParse = setDtypeToFirstKid;
     productions[59].afterSemanticParse = setDtypeToFirstKid;
     productions[60].afterSemanticParse = setDtypeToFirstKid;
