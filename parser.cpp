@@ -519,7 +519,6 @@ void checkArithmeticOp(TreeSymbol *lhs)
 {
     DataType d = get<0>(lhs->kids[0]->dtype);
     DataType toSet = INT;
-    cout << "Arith op: " << lhs->kids[1]->type << endl;
     assert(d == INT || d == FLOAT);
     if (d == FLOAT)
         toSet = FLOAT;
@@ -537,11 +536,60 @@ void setDtypeToSecondKid(TreeSymbol *lhs) {
     lhs->dtype = lhs->kids[1]->dtype;
 }
 
+void assignArithmetic(TreeSymbol *lhs) {
+    tuple<DataType, int> dt = getVarDtype(lhs->kids[0]->value);
+    assert(get<1>(dt) == 0);
+    assert(get<0>(dt) == INT || get<0>(dt) == FLOAT || get<0>(dt) == CHAR || get<0>(dt) == BOOL || get<0>(dt) == STRING);
+    tuple<DataType, int> expdt = lhs->kids[2]->dtype;
+    assert(get<1>(expdt) == 0);
+    assert(get<0>(expdt) == INT || get<0>(expdt) == FLOAT || get<0>(expdt) == CHAR || get<0>(expdt) == BOOL || get<0>(expdt) == STRING);
+}
+
+void assignBitwise(TreeSymbol *lhs) {
+    tuple<DataType, int> dt = getVarDtype(lhs->kids[0]->value);
+    assert(get<1>(dt) == 0);
+    assert(get<0>(dt) == INT || get<0>(dt) == FLOAT || get<0>(dt) == CHAR || get<0>(dt) == BOOL);
+    tuple<DataType, int> expdt = lhs->kids[2]->dtype;
+    assert(get<1>(expdt) == 0);
+    assert(get<0>(expdt) == INT || get<0>(expdt) == FLOAT || get<0>(expdt) == CHAR || get<0>(expdt) == BOOL);
+}
+
+void assignBitshift(TreeSymbol *lhs) {
+    tuple<DataType, int> dt = getVarDtype(lhs->kids[0]->value);
+    assert(get<1>(dt) == 0);
+    assert(get<0>(dt) == INT || get<0>(dt) == FLOAT || get<0>(dt) == CHAR || get<0>(dt) == BOOL);
+    tuple<DataType, int> expdt = lhs->kids[2]->dtype;
+    assert(get<1>(expdt) == 0);
+    assert(get<0>(expdt) == INT || get<0>(expdt) == CHAR || get<0>(expdt) == BOOL);
+}
+
+void assignIterable(TreeSymbol *lhs) {
+    tuple<DataType, int> dt = getVarDtype(lhs->kids[0]->value);
+    assert(get<1>(dt) > 0);
+    assert(get<0>(dt) == INT || get<0>(dt) == FLOAT || get<0>(dt) == CHAR || get<0>(dt) == BOOL || get<0>(dt) == STRING);
+    tuple<DataType, int> expdt = lhs->kids[2]->dtype;
+    assert(get<1>(expdt) == get<1>(dt)-1);
+    assert(get<0>(expdt) == get<0>(dt));
+}
+
 void setSemanticRules(vector<Production>& productions) {
     productions[10].afterSemanticParse = declareVariables;
     productions[11].afterSemanticParse = initVarList;
     productions[12].afterSemanticParse = appendToVarList;
     productions[13].afterSemanticParse = multipleAssign;
+    productions[14].afterSemanticParse = assignArithmetic;
+    productions[15].afterSemanticParse = assignArithmetic;
+    productions[16].afterSemanticParse = assignArithmetic;
+    productions[17].afterSemanticParse = assignArithmetic;
+    productions[18].afterSemanticParse = assignArithmetic;
+    productions[19].afterSemanticParse = assignArithmetic;
+    productions[20].afterSemanticParse = assignArithmetic;
+    productions[21].afterSemanticParse = assignBitwise;
+    productions[22].afterSemanticParse = assignBitwise;
+    productions[23].afterSemanticParse = assignBitwise;
+    productions[24].afterSemanticParse = assignBitshift;
+    productions[25].afterSemanticParse = assignBitshift;
+    productions[26].afterSemanticParse = assignIterable;
     productions[27].beforeSemanticParseChild[3] = assertThirdKidIsBool;
     productions[27].beforeSemanticParseChild[5] = pushNewScope;
     productions[27].afterSemanticParse = cleanUpScope;
