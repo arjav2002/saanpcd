@@ -18,14 +18,14 @@ struct TreeSymbol {
     std::vector<TreeSymbol*> kids;
     std::tuple<DataType, int> rtype;
     std::vector<std::string> varnames;
-    std::vector<DataType> dtypes;
+    std::vector<std::tuple<DataType, int>> dtypes;
 };
 
 struct Production {
     std::string lhs;
     std::vector<std::string> rhs;
-    std::vector<void (*)(std::vector<TreeSymbol*> &kids, TreeSymbol *lhs)> beforeParseChildSemantic;
-    void (*afterParseSemantic)(std::vector<TreeSymbol*> &kids, TreeSymbol *lhs);
+    std::vector<void (*)(TreeSymbol *lhs)> beforeParseChildSemantic;
+    void (*afterParseSemantic)(TreeSymbol *lhs);
 };
 
 void inorder(TreeSymbol *ts);

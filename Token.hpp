@@ -15,6 +15,7 @@ enum TokenType
     CHAR_LIT,
     STR_LIT,
     FLOAT_LIT,
+    BOOL_LIT,
     DEFAULT,
     DTYPE,
     PROC,

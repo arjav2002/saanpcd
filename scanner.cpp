@@ -22,7 +22,8 @@ bool EXIT_FLAG = false;  // A flag for an end of file reached in scanning
 bool ERROR_FLAG = false; // A flag for an error in scanning
 string ERROR_LOG = "";   // Logged statment for an error in scanning
 
-set<string> Keywords = {"if", "elif", "else", "loop", "break", "continue", "return", "and", "is", "nor", "xor", "nand", "or", "true", "True", "tRue", "TRue", "trUe", "TrUe", "tRUe", "TRUe", "truE", "TruE", "tRuE", "TRuE", "trUE", "TrUE", "tRUE", "TRUE", "false", "False", "fAlse", "FAlse", "faLse", "FaLse", "fALse", "FALse", "falSe", "FalSe", "fAlSe", "FAlSe", "faLSe", "FaLSe", "fALSe", "FALSe", "falsE", "FalsE", "fAlsE", "FAlsE", "faLsE", "FaLsE", "fALsE", "FALsE", "falSE", "FalSE", "fAlSE", "FAlSE", "faLSE", "FaLSE", "fALSE", "FALSE"};
+set<string> Keywords = {"if", "elif", "else", "loop", "break", "continue", "return", "and", "is", "nor", "xor", "nand", "or"};
+set<string> boolLiterals = {"true", "True", "tRue", "TRue", "trUe", "TrUe", "tRUe", "TRUe", "truE", "TruE", "tRuE", "TRuE", "trUE", "TrUE", "tRUE", "TRUE", "false", "False", "fAlse", "FAlse", "faLse", "FaLse", "fALse", "FALse", "falSe", "FalSe", "fAlSe", "FAlSe", "faLSe", "FaLSe", "fALSe", "FALSe", "falsE", "FalsE", "fAlsE", "FAlsE", "faLsE", "FaLsE", "fALsE", "FALsE", "falSE", "FalSE", "fAlSE", "FAlSE", "faLSE", "FaLSE", "fALSE", "FALSE"};
 set<string> Datatypes = {"int", "string", "char", "float", "bool", "proc", "void"};
 set<char> Symbols = {'#', '~', '*', '/', '%', ',', ';', '!', '&', '|', '^', '=', '<', '>', '\\', '}', '{', '[', ']', '(', ')', '_', '.', '"', '\''};
 set<char> UnaryOpPrefixes = {'#', '~'};                                     // suffix is character itself
@@ -37,6 +38,7 @@ bool isNumber(char ch);
 bool isSymbol(char ch);
 bool isKeyword(string s);
 bool isDatatype(string s);
+bool isBoolLiteral(string s);
 
 void lexical_error(string error, int ln = linenumber);
 char nextChar(bool skip_whitespace = true);
@@ -185,6 +187,8 @@ std::string tokenToTerminal(Token t) {
             return "int_lit";
         case FLOAT_LIT:
             return "float_lit";
+        case BOOL_LIT:
+            return "bool_lit";
         case $:
             return "$";
         default:
@@ -494,6 +498,9 @@ Token alphanumeric(char ch)
 
     if (isDatatype(str))
         return Token(DTYPE, str, ln);
+    
+    if (isBoolLiteral(str))
+        return Token(BOOL_LIT, str, ln);
 
     return Token(IDENTIFIER, str, ln);
 }
@@ -589,6 +596,10 @@ bool isNumber(char ch)
 bool isSymbol(char ch)
 {
     return Symbols.find(ch) != Symbols.end();
+}
+
+bool isBoolLiteral(string s) {
+    return boolLiterals.find(s) != boolLiterals.end();
 }
 
 bool isDatatype(string s) {

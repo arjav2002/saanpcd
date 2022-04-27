@@ -14,6 +14,8 @@
 
 using namespace std;
 
+stack<map<string, tuple<DataType, int>>> symbolTable;
+
 void setSemanticRules(vector<Production>& productions);
 struct StackSymbol {
     bool is_state;
@@ -50,6 +52,9 @@ bool isstate(string s)
 
 TreeSymbol* parse(vector<Token>& program)
 {
+    // pushing global scope
+    symbolTable.push(map<string, tuple<DataType, int>>());
+
     ifstream ifs;
     ifs.open("parse_table.csv");
     std::string d;
@@ -151,9 +156,10 @@ TreeSymbol* parse(vector<Token>& program)
                         get<0>(stk.top()->ts->dtype) = FLOAT;
                         get<1>(stk.top()->ts->dtype) = 0;
                         break;
-                    // case BOOL_LIT:
-                    //     stk.top()->ts->dtype = {INT, 0};
-                    //     break;
+                    case BOOL_LIT:
+                        get<0>(stk.top()->ts->dtype) = BOOL;
+                        get<1>(stk.top()->ts->dtype) = 0;
+                        break;
                     case STR_LIT:
                         get<0>(stk.top()->ts->dtype) = STRING;
                         get<1>(stk.top()->ts->dtype) = 0;
@@ -178,13 +184,13 @@ TreeSymbol* parse(vector<Token>& program)
 
                 while(!tmp.empty()) {
                     int i = toPush->ts->kids.size();
-                    if(p.beforeParseChildSemantic[i]) p.beforeParseChildSemantic[i](toPush->ts->kids, toPush->ts);
+                    if(p.beforeParseChildSemantic[i]) p.beforeParseChildSemantic[i](toPush->ts);
                     tmp.top()->parent = toPush->ts;
                     tmp.top()->parentIndex = i;
                     toPush->ts->kids.push_back(tmp.top());
                     tmp.pop();
                 }
-                if(p.afterParseSemantic) p.afterParseSemantic(toPush->ts->kids, toPush->ts);
+                if(p.afterParseSemantic) p.afterParseSemantic(toPush->ts);
                 stk.push(toPush);
             }
             else if(lookup == "acc") {
@@ -219,22 +225,140 @@ TreeSymbol* parse(vector<Token>& program)
     return stk.top()->ts;
 }
 
-void assertThirdKidExpIsBool(std::vector<TreeSymbol*>& kids, TreeSymbol *lhs) {
-    assert(get<0>(kids[2]->dtype) == BOOL);
-    assert(get<1>(kids[2]->dtype) == 0);
+void assertThirdKidIsBool(TreeSymbol *lhs) {
+    assert(get<0>(lhs->kids[2]->dtype) == BOOL);
+    assert(get<1>(lhs->kids[2]->dtype) == 0);
 }
 
-void setDtypeToRHS(std::vector<TreeSymbol*>& kids, TreeSymbol *lhs) {
-    lhs->dtype = kids[0]->dtype;
+void setDtypeToFirstKid(TreeSymbol *lhs) {
+    lhs->dtype = lhs->kids[0]->dtype;
+}
+
+void initVarList(TreeSymbol *lhs) {
+    lhs->varnames.push_back(lhs->kids[0]->value);
+}
+
+void appendToVarList(TreeSymbol *lhs) {
+    lhs->varnames.push_back(lhs->kids[2]->value);
+}
+
+void declareVariables(TreeSymbol *lhs) {
+    for(string varname : lhs->varnames) {
+        if(symbolTable.top().find(varname) != symbolTable.top().end()) {
+            cout << "Variable " << varname << " has been redeclared in scope level " << symbolTable.size() << endl;
+            assert(symbolTable.top().find(varname) == symbolTable.top().end());
+        }
+        symbolTable.top()[varname] = lhs->kids[0]->dtype;
+    }
+}
+
+void getVarDtypeFromSymbolTable(TreeSymbol *lhs) {
+    bool found = false;
+    stack<map<string, tuple<DataType, int>>> tmp;
+    while(symbolTable.size()) {
+        auto currScope = symbolTable.top();
+        if(currScope.find(lhs->kids[0]->value) != currScope.end()) {
+            found = true;
+            lhs->dtype = lhs->kids[0]->dtype;
+            break;
+        }
+        tmp.push(symbolTable.top());
+        symbolTable.pop();
+    }
+    while(tmp.size()) {
+        symbolTable.push(tmp.top());
+        tmp.pop();
+    }
+
+    if(!found) {
+        cout << "Variable " << lhs->kids[0]->value << " not found in any scope" << endl;
+        assert(found);
+    }
+}
+
+void checkRelationalOp(TreeSymbol *lhs) {
+    DataType d = get<0>(lhs->kids[0]->dtype);
+    assert(d == INT || d == FLOAT || d == CHAR || d == BOOL);
+    assert(get<1>(lhs->kids[0]->dtype) == 0);
+    d = get<0>(lhs->kids[2]->dtype);
+    assert(d == INT || d == FLOAT || d == CHAR || d == BOOL);
+    assert(get<1>(lhs->kids[2]->dtype) == 0);
+    get<0>(lhs->dtype) = BOOL;
+    get<1>(lhs->dtype) = 0;
+}
+
+void cleanUpScope(TreeSymbol *lhs) {
+    symbolTable.pop();
+}
+
+void setUpScope(TreeSymbol *lhs) {
+    symbolTable.push(map<string, tuple<DataType, int>>());
+    for(int i = 0; i < lhs->kids[0]->dtypes.size(); i++) {
+        symbolTable.top()[lhs->kids[0]->varnames[i]] = lhs->kids[0]->dtypes[i];
+    }
+}
+
+void regParam(TreeSymbol *lhs) {
+    lhs->dtype = lhs->kids[0]->dtype;
+    lhs->value = lhs->kids[1]->value;
+}
+
+void initRegParamList(TreeSymbol *lhs) {
+    lhs->varnames.push_back(lhs->kids[0]->value);
+    lhs->dtypes.push_back(lhs->kids[0]->dtype);
+}
+
+void appendToRegParamList(TreeSymbol *lhs) {
+    lhs->varnames = lhs->kids[0]->varnames;
+    lhs->kids[0]->varnames.clear();
+    lhs->dtypes = lhs->kids[0]->dtypes;
+    lhs->kids[0]->dtypes.clear();
+    lhs->varnames.push_back(lhs->kids[2]->value);
+    lhs->dtypes.push_back(lhs->kids[2]->dtype);
 }
 
 void setSemanticRules(vector<Production>& productions) {
-    // productions[27].beforeParseChildSemantic[3] = assertThirdKidExpIsBool;
-    productions[100].afterParseSemantic = setDtypeToRHS;
-    productions[101].afterParseSemantic = setDtypeToRHS;
-    productions[102].afterParseSemantic = setDtypeToRHS;
-    productions[103].afterParseSemantic = setDtypeToRHS;
-    productions[104].afterParseSemantic = setDtypeToRHS;
-    productions[105].afterParseSemantic = setDtypeToRHS;
-    productions[106].afterParseSemantic = setDtypeToRHS;
+    productions[10].afterParseSemantic = declareVariables;
+    productions[11].afterParseSemantic = initVarList;
+    productions[12].afterParseSemantic = appendToVarList;
+    productions[27].beforeParseChildSemantic[3] = assertThirdKidIsBool;
+    productions[28].beforeParseChildSemantic[3] = assertThirdKidIsBool;
+    productions[35].afterParseSemantic = cleanUpScope;
+    // productions[38].afterParseSemantic = setUpScope;
+    productions[39].afterParseSemantic = setUpScope;
+    // productions[40].afterParseSemantic = setUpScope;
+    // productions[41].afterParseSemantic = setUpScope;
+    productions[42].afterParseSemantic = initRegParamList;
+    productions[43].afterParseSemantic = appendToRegParamList;
+    productions[44].afterParseSemantic = regParam;
+    productions[57].afterParseSemantic = setDtypeToFirstKid;
+    productions[59].afterParseSemantic = setDtypeToFirstKid;
+    productions[60].afterParseSemantic = setDtypeToFirstKid;
+    productions[62].afterParseSemantic = setDtypeToFirstKid;
+    productions[64].afterParseSemantic = setDtypeToFirstKid;
+    productions[66].afterParseSemantic = setDtypeToFirstKid;
+    productions[71].afterParseSemantic = setDtypeToFirstKid;
+    productions[72].afterParseSemantic = checkRelationalOp;
+    productions[73].afterParseSemantic = checkRelationalOp;
+    productions[74].afterParseSemantic = checkRelationalOp;
+    productions[75].afterParseSemantic = checkRelationalOp;
+    productions[76].afterParseSemantic = setDtypeToFirstKid;
+    productions[81].afterParseSemantic = setDtypeToFirstKid;
+    productions[87].afterParseSemantic = setDtypeToFirstKid;
+    productions[92].afterParseSemantic = setDtypeToFirstKid;
+    productions[93].afterParseSemantic = setDtypeToFirstKid;
+    productions[94].afterParseSemantic = setDtypeToFirstKid;
+    productions[95].afterParseSemantic = getVarDtypeFromSymbolTable;
+    productions[95].afterParseSemantic = setDtypeToFirstKid;
+    productions[96].beforeParseChildSemantic[1] = getVarDtypeFromSymbolTable;
+    productions[96].afterParseSemantic = setDtypeToFirstKid;
+    productions[97].beforeParseChildSemantic[1] = getVarDtypeFromSymbolTable;
+    productions[97].afterParseSemantic = setDtypeToFirstKid;
+    productions[100].afterParseSemantic = setDtypeToFirstKid;
+    productions[101].afterParseSemantic = setDtypeToFirstKid;
+    productions[102].afterParseSemantic = setDtypeToFirstKid;
+    productions[103].afterParseSemantic = setDtypeToFirstKid;
+    productions[104].afterParseSemantic = setDtypeToFirstKid;
+    productions[105].afterParseSemantic = setDtypeToFirstKid;
+    productions[106].afterParseSemantic = setDtypeToFirstKid;
 }
