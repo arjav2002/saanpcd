@@ -6,7 +6,7 @@
 #include <vector>
 
 enum DataType {
-    INT, FLOAT, CHAR, STRING, BOOL
+    NOTA, INT, FLOAT, CHAR, STRING, BOOL
 };
 
 struct TreeSymbol {
@@ -15,6 +15,7 @@ struct TreeSymbol {
     std::tuple<DataType, int> dtype;
     TreeSymbol *parent;
     int parentIndex;
+    int prodNo=-1;
     std::vector<TreeSymbol*> kids;
     std::tuple<DataType, int> rtype;
     std::vector<std::string> varnames;
@@ -24,8 +25,8 @@ struct TreeSymbol {
 struct Production {
     std::string lhs;
     std::vector<std::string> rhs;
-    std::vector<void (*)(TreeSymbol *lhs)> beforeParseChildSemantic;
-    void (*afterParseSemantic)(TreeSymbol *lhs);
+    std::vector<void (*)(TreeSymbol *lhs)> beforeSemanticParseChild;
+    void (*afterSemanticParse)(TreeSymbol *lhs);
 };
 
 void inorder(TreeSymbol *ts);
