@@ -18,28 +18,32 @@ vector<Production> productions;
 stack<map<string, tuple<DataType, int>>> variableTable;
 stack<map<string, pair<vector<tuple<DataType, int>>, vector<tuple<DataType, int>>>>> functionTable;
 
-void setSemanticRules(vector<Production>& productions);
-struct StackSymbol {
+void setSemanticRules(vector<Production> &productions);
+struct StackSymbol
+{
     bool is_state;
-    union {
+    union
+    {
         int state;
         TreeSymbol *ts;
     };
 
     StackSymbol(int s) : is_state(true), state(s) {}
-    StackSymbol(string type, string value) : is_state(false) {
+    StackSymbol(string type, string value) : is_state(false)
+    {
         ts = new TreeSymbol;
         ts->type = type;
         ts->value = value;
         ts->parent = nullptr;
     }
 
-    ~StackSymbol() {
-        if(!is_state) {
+    ~StackSymbol()
+    {
+        if (!is_state)
+        {
             delete ts;
         }
     }
-    
 };
 
 bool isstate(string s)
@@ -52,18 +56,23 @@ bool isstate(string s)
     return true;
 }
 
-void inorderSemanticCheck(TreeSymbol *t) {
-    if(t->prodNo == -1) return;
-    for(int i = 0; i < t->kids.size(); i++) {
-        if(productions[t->prodNo].beforeSemanticParseChild[i]) {
+void inorderSemanticCheck(TreeSymbol *t)
+{
+    if (t->prodNo == -1)
+        return;
+    for (int i = 0; i < t->kids.size(); i++)
+    {
+        if (productions[t->prodNo].beforeSemanticParseChild[i])
+        {
             productions[t->prodNo].beforeSemanticParseChild[i](t);
         }
         inorderSemanticCheck(t->kids[i]);
     }
-    if(productions[t->prodNo].afterSemanticParse) productions[t->prodNo].afterSemanticParse(t);
+    if (productions[t->prodNo].afterSemanticParse)
+        productions[t->prodNo].afterSemanticParse(t);
 }
 
-TreeSymbol* parse(vector<Token>& program)
+TreeSymbol *parse(vector<Token> &program)
 {
     // pushing global scope
     variableTable.push(map<string, tuple<DataType, int>>());
@@ -82,12 +91,13 @@ TreeSymbol* parse(vector<Token>& program)
         std::string token;
         while (getline(ss, token, ','))
         {
-            if(token == "") {
+            if (token == "")
+            {
                 v.push_back(",");
                 getline(ss, token, ',');
                 continue;
             }
-            
+
             if (token == "\"\"\"\"")
                 v.push_back("\"");
             else
@@ -104,23 +114,28 @@ TreeSymbol* parse(vector<Token>& program)
 
     ifs.open("easyprod.txt");
     string prodString;
-    while(getline(ifs, prodString)) {
-        while(prodString.back() == ' ') prodString.pop_back();
+    while (getline(ifs, prodString))
+    {
+        while (prodString.back() == ' ')
+            prodString.pop_back();
         int pos = prodString.find(' ');
         Production p;
         p.lhs = prodString.substr(0, pos);
         prodString.erase(0, pos + 1);
         pos = prodString.find(' ');
         prodString.erase(0, pos + 1);
-        while ((pos = prodString.find(' ')) != std::string::npos) {
+        while ((pos = prodString.find(' ')) != std::string::npos)
+        {
             string str = prodString.substr(0, pos);
-            if(str != "''") {
+            if (str != "''")
+            {
                 p.rhs.push_back(str);
                 p.beforeSemanticParseChild.push_back(nullptr);
             }
             prodString.erase(0, pos + 1);
         }
-        if(prodString.size() && prodString != "''") {
+        if (prodString.size() && prodString != "''")
+        {
             p.rhs.push_back(prodString);
             p.beforeSemanticParseChild.push_back(nullptr);
         }
@@ -129,7 +144,7 @@ TreeSymbol* parse(vector<Token>& program)
     }
     setSemanticRules(productions);
     ifs.close();
-    stack<StackSymbol*> stk;
+    stack<StackSymbol *> stk;
     stk.push(new StackSymbol(0));
     int c = 0;
     std::string lookup;
@@ -137,69 +152,76 @@ TreeSymbol* parse(vector<Token>& program)
     {
         if (stk.top()->is_state)
         {
-            lookup = parse_table[stk.top()->state+1][m[tokenToTerminal(program[c])]];
+            lookup = parse_table[stk.top()->state + 1][m[tokenToTerminal(program[c])]];
             assert(lookup != "x");
             if (lookup[0] == 's')
             {
                 stk.push(new StackSymbol(tokenToTerminal(program[c]), program[c].token_name));
-                switch(program[c].token_type) {
-                    case INT_LIT:
+                switch (program[c].token_type)
+                {
+                case INT_LIT:
+                    get<0>(stk.top()->ts->dtype) = INT;
+                    get<1>(stk.top()->ts->dtype) = 0;
+                    break;
+                case FLOAT_LIT:
+                    get<0>(stk.top()->ts->dtype) = FLOAT;
+                    get<1>(stk.top()->ts->dtype) = 0;
+                    break;
+                case BOOL_LIT:
+                    get<0>(stk.top()->ts->dtype) = BOOL;
+                    get<1>(stk.top()->ts->dtype) = 0;
+                    break;
+                case STR_LIT:
+                    get<0>(stk.top()->ts->dtype) = STRING;
+                    get<1>(stk.top()->ts->dtype) = 0;
+                    break;
+                case DTYPE:
+                    if (program[c].token_name == "int")
+                    {
                         get<0>(stk.top()->ts->dtype) = INT;
-                        get<1>(stk.top()->ts->dtype) = 0;
-                        break;
-                    case FLOAT_LIT:
+                        get<1>(stk.top()->ts->dtype) = program[c].dims;
+                    }
+                    else if (program[c].token_name == "float")
+                    {
                         get<0>(stk.top()->ts->dtype) = FLOAT;
-                        get<1>(stk.top()->ts->dtype) = 0;
-                        break;
-                    case BOOL_LIT:
+                        get<1>(stk.top()->ts->dtype) = program[c].dims;
+                    }
+                    else if (program[c].token_name == "bool")
+                    {
                         get<0>(stk.top()->ts->dtype) = BOOL;
-                        get<1>(stk.top()->ts->dtype) = 0;
-                        break;
-                    case STR_LIT:
+                        get<1>(stk.top()->ts->dtype) = program[c].dims;
+                    }
+                    else if (program[c].token_name == "string")
+                    {
                         get<0>(stk.top()->ts->dtype) = STRING;
-                        get<1>(stk.top()->ts->dtype) = 0;
-                        break;
-                    case DTYPE:
-                        if(program[c].token_name == "int") {
-                            get<0>(stk.top()->ts->dtype) = INT;
-                            get<1>(stk.top()->ts->dtype) = 0;
-                        }
-                        else if(program[c].token_name == "float") {
-                            get<0>(stk.top()->ts->dtype) = FLOAT;
-                            get<1>(stk.top()->ts->dtype) = 0;
-                        }
-                        else if(program[c].token_name == "bool") {
-                            get<0>(stk.top()->ts->dtype) = BOOL;
-                            get<1>(stk.top()->ts->dtype) = 0;
-                        }
-                        else if(program[c].token_name == "string") {
-                            get<0>(stk.top()->ts->dtype) = STRING;
-                            get<1>(stk.top()->ts->dtype) = 0;
-                        }
+                        get<1>(stk.top()->ts->dtype) = program[c].dims;
+                    }
 
-                        break;
+                    break;
                 }
                 c++;
                 stk.push(new StackSymbol(stoi(lookup.substr(1, lookup.size() - 1))));
             }
-            else if(lookup[0] == 'r')
+            else if (lookup[0] == 'r')
             {
                 int prodNo = stoi(lookup.substr(1, lookup.size() - 1));
                 Production p = productions[prodNo];
                 int toPop = p.rhs.size();
                 StackSymbol *toPush = new StackSymbol(p.lhs, "");
                 toPush->ts->prodNo = prodNo;
-                stack<TreeSymbol*> tmp;
-                while(toPop--) {
+                stack<TreeSymbol *> tmp;
+                while (toPop--)
+                {
                     delete stk.top();
                     stk.pop();
                     tmp.push(stk.top()->ts);
                     stk.pop();
                 }
 
-                while(!tmp.empty()) {
+                while (!tmp.empty())
+                {
                     int i = toPush->ts->kids.size();
-                    
+
                     tmp.top()->parent = toPush->ts;
                     tmp.top()->parentIndex = i;
                     toPush->ts->kids.push_back(tmp.top());
@@ -207,7 +229,8 @@ TreeSymbol* parse(vector<Token>& program)
                 }
                 stk.push(toPush);
             }
-            else if(lookup == "acc") {
+            else if (lookup == "acc")
+            {
                 c++;
                 cout << "ACCEPTED!" << endl;
             }
@@ -216,50 +239,59 @@ TreeSymbol* parse(vector<Token>& program)
         {
             StackSymbol *tmp = stk.top();
             stk.pop();
-            std::string tmp2 = parse_table[stk.top()->state+1][m[tmp->ts->type]];
+            std::string tmp2 = parse_table[stk.top()->state + 1][m[tmp->ts->type]];
             stk.push(tmp);
             stk.push(new StackSymbol(stoi(tmp2)));
         }
     }
     stk.pop();
-    inorderSemanticCheck(stk.top()->ts);
+    // inorderSemanticCheck(stk.top()->ts);
     inorder(stk.top()->ts);
 
     return stk.top()->ts;
 }
 
-void assertThirdKidIsBool(TreeSymbol *lhs) {
+void assertThirdKidIsBool(TreeSymbol *lhs)
+{
     assert(get<0>(lhs->kids[2]->dtype) == BOOL);
     assert(get<1>(lhs->kids[2]->dtype) == 0);
 }
 
-void setDtypeToFirstKid(TreeSymbol *lhs) {
+void setDtypeToFirstKid(TreeSymbol *lhs)
+{
     lhs->dtype = lhs->kids[0]->dtype;
 }
 
-void initVarList(TreeSymbol *lhs) {
+void initVarList(TreeSymbol *lhs)
+{
     lhs->varnames.push_back(lhs->kids[0]->value);
 }
 
-void appendToVarList(TreeSymbol *lhs) {
+void appendToVarList(TreeSymbol *lhs)
+{
     lhs->varnames = lhs->kids[0]->varnames;
     lhs->kids[0]->varnames.clear();
     lhs->varnames.push_back(lhs->kids[2]->value);
 }
 
-void initDtypeList(TreeSymbol *lhs) {
+void initDtypeList(TreeSymbol *lhs)
+{
     lhs->dtypes.push_back(lhs->kids[0]->dtype);
 }
 
-void appendDtypeListFromThirdKid(TreeSymbol *lhs) {
+void appendDtypeListFromThirdKid(TreeSymbol *lhs)
+{
     lhs->dtypes = lhs->kids[0]->dtypes;
     lhs->kids[0]->dtypes.clear();
     lhs->dtypes.push_back(lhs->kids[2]->dtype);
 }
 
-void declareVariables(TreeSymbol *lhs) {
-    for(string varname : lhs->kids[1]->varnames) {
-        if(variableTable.top().find(varname) != variableTable.top().end()) {
+void declareVariables(TreeSymbol *lhs)
+{
+    for (string varname : lhs->kids[1]->varnames)
+    {
+        if (variableTable.top().find(varname) != variableTable.top().end())
+        {
             cout << "Variable " << varname << " has been redeclared in scope level " << variableTable.size() << endl;
             assert(variableTable.top().find(varname) == variableTable.top().end());
         }
@@ -267,14 +299,17 @@ void declareVariables(TreeSymbol *lhs) {
     }
 }
 
-tuple<DataType, int> getVarDtype(string v) {
+tuple<DataType, int> getVarDtype(string v)
+{
     bool found = false;
     stack<map<string, tuple<DataType, int>>> tmp;
     tuple<DataType, int> toRet;
-    while(variableTable.size()) {
+    while (variableTable.size())
+    {
         auto currScope = variableTable.top();
 
-        if(currScope.find(v) != currScope.end()) {
+        if (currScope.find(v) != currScope.end())
+        {
             found = true;
             toRet = currScope[v];
             break;
@@ -282,12 +317,14 @@ tuple<DataType, int> getVarDtype(string v) {
         tmp.push(variableTable.top());
         variableTable.pop();
     }
-    while(tmp.size()) {
+    while (tmp.size())
+    {
         variableTable.push(tmp.top());
         tmp.pop();
     }
 
-    if(!found) {
+    if (!found)
+    {
         cout << "Variable " << v << " not found in any scope" << endl;
         assert(found);
     }
@@ -295,11 +332,13 @@ tuple<DataType, int> getVarDtype(string v) {
     return toRet;
 }
 
-void setDtypeFromFirstKidVarSymbolTable(TreeSymbol *lhs) {
+void setDtypeFromFirstKidVarSymbolTable(TreeSymbol *lhs)
+{
     lhs->dtype = getVarDtype(lhs->kids[0]->value);
 }
 
-void checkRelationalOp(TreeSymbol *lhs) {
+void checkRelationalOp(TreeSymbol *lhs)
+{
     DataType d = get<0>(lhs->kids[0]->dtype);
     assert(d == INT || d == FLOAT || d == CHAR || d == BOOL);
     assert(get<1>(lhs->kids[0]->dtype) == 0);
@@ -310,45 +349,53 @@ void checkRelationalOp(TreeSymbol *lhs) {
     get<1>(lhs->dtype) = 0;
 }
 
-void cleanUpScope(TreeSymbol *lhs) {
+void cleanUpScope(TreeSymbol *lhs)
+{
     variableTable.pop();
     functionTable.pop();
 }
 
-void pushNewScope(TreeSymbol *lhs) {
+void pushNewScope(TreeSymbol *lhs)
+{
     variableTable.push(map<string, tuple<DataType, int>>());
     functionTable.push(map<string, pair<vector<tuple<DataType, int>>, vector<tuple<DataType, int>>>>());
 }
 
-void setUpScope(TreeSymbol *lhs) {
+void setUpScope(TreeSymbol *lhs)
+{
     pair<vector<tuple<DataType, int>>, vector<tuple<DataType, int>>> args;
     args.first = lhs->kids[3]->dtypes;
     args.second = lhs->kids[3]->dtypes2;
     string fname = lhs->kids[1]->value;
 
-    if(functionTable.top().find(fname) != functionTable.top().end()) {
+    if (functionTable.top().find(fname) != functionTable.top().end())
+    {
         cout << "Function with name " << fname << " already exists in the current scope" << endl;
         assert(functionTable.top().find(fname) == functionTable.top().end());
     }
     functionTable.top()[fname] = args;
     pushNewScope(lhs);
     functionTable.top()[fname] = args;
-    for(int i = 0; i < lhs->kids[3]->dtypes.size(); i++) {
+    for (int i = 0; i < lhs->kids[3]->dtypes.size(); i++)
+    {
         variableTable.top()[lhs->kids[3]->varnames[i]] = lhs->kids[3]->dtypes[i];
     }
 }
 
-void regParam(TreeSymbol *lhs) {
+void regParam(TreeSymbol *lhs)
+{
     lhs->dtype = lhs->kids[0]->dtype;
     lhs->value = lhs->kids[1]->value;
 }
 
-void initRegParamList(TreeSymbol *lhs) {
+void initRegParamList(TreeSymbol *lhs)
+{
     lhs->varnames.push_back(lhs->kids[0]->value);
     lhs->dtypes.push_back(lhs->kids[0]->dtype);
 }
 
-void appendToRegParamList(TreeSymbol *lhs) {
+void appendToRegParamList(TreeSymbol *lhs)
+{
     lhs->varnames = lhs->kids[0]->varnames;
     lhs->kids[0]->varnames.clear();
     lhs->dtypes = lhs->kids[0]->dtypes;
@@ -357,71 +404,90 @@ void appendToRegParamList(TreeSymbol *lhs) {
     lhs->dtypes.push_back(lhs->kids[2]->dtype);
 }
 
-void multipleAssign(TreeSymbol *lhs) {
-    if(lhs->kids[0]->varnames.size() != lhs->kids[2]->dtypes.size()) {
+void multipleAssign(TreeSymbol *lhs)
+{
+    if (lhs->kids[0]->varnames.size() != lhs->kids[2]->dtypes.size())
+    {
         cout << "Unequal number of variables for assignment" << endl;
         assert(lhs->kids[0]->varnames.size() == lhs->kids[2]->dtypes.size());
     }
-    for(int i = 0; i < lhs->kids[0]->varnames.size(); i++) {
+    for (int i = 0; i < lhs->kids[0]->varnames.size(); i++)
+    {
         string x = lhs->kids[0]->varnames[i];
         auto dtype = getVarDtype(x);
-        if(dtype != lhs->kids[2]->dtypes[i]) {
+        if (dtype != lhs->kids[2]->dtypes[i])
+        {
             cout << "Attempt to assign " << get<0>(lhs->kids[2]->dtypes[i]) << " to " << x << " of type " << get<0>(dtype) << endl;
             assert(dtype == lhs->kids[2]->dtypes[i]);
         }
     }
 }
 
-void sendRegParamList(TreeSymbol *lhs) {
+void sendRegParamList(TreeSymbol *lhs)
+{
     lhs->varnames = lhs->kids[0]->varnames;
     lhs->dtypes = lhs->kids[0]->dtypes;
 }
 
-void sendOptParamList(TreeSymbol *lhs) {
+void sendOptParamList(TreeSymbol *lhs)
+{
     lhs->varnames2 = lhs->kids[0]->varnames;
     lhs->dtypes2 = lhs->kids[0]->dtypes;
 }
 
-void sendAllParamList(TreeSymbol *lhs) {
+void sendAllParamList(TreeSymbol *lhs)
+{
     lhs->varnames = lhs->kids[0]->varnames;
     lhs->dtypes = lhs->kids[0]->dtypes;
     lhs->varnames2 = lhs->kids[2]->varnames;
     lhs->dtypes2 = lhs->kids[2]->dtypes;
 }
 
-void sendFirstKidValue(TreeSymbol *lhs) {
+void sendFirstKidValue(TreeSymbol *lhs)
+{
     lhs->value = lhs->kids[0]->value;
 }
 
-void setDtypeListToFirstKid(TreeSymbol *lhs) {
+void setDtypeListToFirstKid(TreeSymbol *lhs)
+{
     lhs->dtypes = lhs->kids[0]->dtypes;
     lhs->kids[0]->dtypes.clear();
 }
 
-void functionCall(TreeSymbol *lhs) {
+void functionCall(TreeSymbol *lhs)
+{
     bool found = false;
-    
+
     stack<map<string, pair<vector<tuple<DataType, int>>, vector<tuple<DataType, int>>>>> tmp;
-    while(functionTable.size()) {
+    while (functionTable.size())
+    {
         auto x = functionTable.top().find(lhs->kids[0]->value);
-        if(x != functionTable.top().end()) {
+        if (x != functionTable.top().end())
+        {
             auto args = (*x).second;
-            if(args.first.size() <= lhs->kids[2]->dtypes.size()) {
+            if (args.first.size() <= lhs->kids[2]->dtypes.size())
+            {
                 bool ok = true;
-                for(int i = 0; i < args.first.size(); i++) {
-                    if(args.first[i] != lhs->kids[2]->dtypes[i]) {
+                for (int i = 0; i < args.first.size(); i++)
+                {
+                    if (args.first[i] != lhs->kids[2]->dtypes[i])
+                    {
                         ok = false;
                         break;
                     }
                 }
-                if(ok && lhs->kids[2]->dtypes.size()-args.first.size() <= args.second.size()) {
-                    for(int i = 0; i < lhs->kids[2]->dtypes.size()-args.first.size(); i++) {
-                        if(args.second[i] != lhs->kids[2]->dtypes[i + args.first.size()]) {
+                if (ok && lhs->kids[2]->dtypes.size() - args.first.size() <= args.second.size())
+                {
+                    for (int i = 0; i < lhs->kids[2]->dtypes.size() - args.first.size(); i++)
+                    {
+                        if (args.second[i] != lhs->kids[2]->dtypes[i + args.first.size()])
+                        {
                             ok = false;
                             break;
                         }
                     }
-                    if(ok) {
+                    if (ok)
+                    {
                         found = true;
                         break;
                     }
@@ -432,37 +498,44 @@ void functionCall(TreeSymbol *lhs) {
         functionTable.pop();
     }
 
-    while(tmp.size()) {
+    while (tmp.size())
+    {
         functionTable.push(tmp.top());
         tmp.pop();
     }
 
-    if(!found) {
+    if (!found)
+    {
         cout << "function with name " << lhs->kids[0]->value << " either nonexistent or called with wrong signature" << endl;
         cout << "Call signature: ";
-        for(auto x : lhs->kids[2]->dtypes) {
-            cout << get<0>(x) <<  " ";
+        for (auto x : lhs->kids[2]->dtypes)
+        {
+            cout << get<0>(x) << " ";
         }
         cout << endl;
         assert(found);
     }
 }
 
-void checkArithmeticOp(TreeSymbol *lhs) {
+void checkArithmeticOp(TreeSymbol *lhs)
+{
     DataType d = get<0>(lhs->kids[0]->dtype);
     DataType toSet = INT;
     assert(d == INT || d == FLOAT);
-    if(d == FLOAT) toSet = FLOAT;
+    if (d == FLOAT)
+        toSet = FLOAT;
     assert(get<1>(lhs->kids[0]->dtype) == 0);
     d = get<0>(lhs->kids[2]->dtype);
     assert(d == INT || d == FLOAT);
-    if(d == FLOAT) toSet = FLOAT;
+    if (d == FLOAT)
+        toSet = FLOAT;
     assert(get<1>(lhs->kids[2]->dtype) == 0);
     get<0>(lhs->dtype) = toSet;
     get<1>(lhs->dtype) = 0;
 }
 
-void setSemanticRules(vector<Production>& productions) {
+void setSemanticRules(vector<Production> &productions)
+{
     productions[10].afterSemanticParse = declareVariables;
     productions[11].afterSemanticParse = initVarList;
     productions[12].afterSemanticParse = appendToVarList;

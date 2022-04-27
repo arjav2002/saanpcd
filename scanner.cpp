@@ -169,31 +169,33 @@ std::string tokenToString(TokenType tt)
     }
 }
 
-std::string tokenToTerminal(Token t) {
-    switch(t.token_type) {
-        case DTYPE:
-            return "dtype";
-        case IDENTIFIER:
-            return "vname_identifier";
-        case KEYWORD:
-            return t.token_name;
-        case SYMBOL:
-            return t.token_name;
-        case STR_LIT:
-            return "str_lit";
-        case CHAR_LIT:
-            return "char_lit";
-        case INT_LIT:
-            return "int_lit";
-        case FLOAT_LIT:
-            return "float_lit";
-        case BOOL_LIT:
-            return "bool_lit";
-        case $:
-            return "$";
-        default:
-            cout << t.token_name << " " << t.token_linenumber << " " << t.token_type << endl;
-            return "Error!";
+std::string tokenToTerminal(Token t)
+{
+    switch (t.token_type)
+    {
+    case DTYPE:
+        return "dtype";
+    case IDENTIFIER:
+        return "vname_identifier";
+    case KEYWORD:
+        return t.token_name;
+    case SYMBOL:
+        return t.token_name;
+    case STR_LIT:
+        return "str_lit";
+    case CHAR_LIT:
+        return "char_lit";
+    case INT_LIT:
+        return "int_lit";
+    case FLOAT_LIT:
+        return "float_lit";
+    case BOOL_LIT:
+        return "bool_lit";
+    case $:
+        return "$";
+    default:
+        cout << t.token_name << " " << t.token_linenumber << " " << t.token_type << endl;
+        return "Error!";
     }
     return "ERROR:!";
 }
@@ -255,7 +257,8 @@ bool scanner()
     return true;
 }
 
-vector<Token> scan(std::string filename) {
+vector<Token> scan(std::string filename)
+{
     srand(16);
 
     fin.open(filename);
@@ -478,7 +481,7 @@ Token alphanumeric(char ch)
     string str = "";
     int ln = linenumber;
 
-    while (isAlphabet(ch) || isNumber(ch))
+    while (isAlphabet(ch) || isNumber(ch) || ch == '[' || ch == ']')
     {
         str += ch;
         ch = nextChar(false);
@@ -489,6 +492,11 @@ Token alphanumeric(char ch)
     // ptr is being decremented as alphanumeric goes ahead of its range
     ptr--;
 
+    if (str.find('[') != std::string::npos)
+        cout << str.substr(str.find('[')).length() / 2 << "\n";
+    else
+        cout << str.find('[') << "\n";
+
     if (isKeyword(str))
     {
         string caps = str;
@@ -496,9 +504,26 @@ Token alphanumeric(char ch)
         return Token(KEYWORD, str, ln);
     }
 
-    if (isDatatype(str))
-        return Token(DTYPE, str, ln);
-    
+    // if (isDatatype(str.substr(0, str.find("["))))
+    //     return Token(DTYPE, str.substr(0, str.find("[")), ln, str.substr(str.find("[")).length() / 2);
+
+    if (str.find('[') != std::string::npos)
+    {
+        if (isDatatype(str.substr(0, str.find("["))))
+        {
+            cout << "plus\n";
+            return Token(DTYPE, str.substr(0, str.find('[')), ln, str.substr(str.find('[')).length() / 2);
+        }
+    }
+    else
+    {
+        if (isDatatype(str))
+        {
+            cout << "zero\n";
+            return Token(DTYPE, str.substr(0, str.find('[')), ln, 0);
+        }
+    }
+
     if (isBoolLiteral(str))
         return Token(BOOL_LIT, str, ln);
 
@@ -598,11 +623,13 @@ bool isSymbol(char ch)
     return Symbols.find(ch) != Symbols.end();
 }
 
-bool isBoolLiteral(string s) {
+bool isBoolLiteral(string s)
+{
     return boolLiterals.find(s) != boolLiterals.end();
 }
 
-bool isDatatype(string s) {
+bool isDatatype(string s)
+{
     return Datatypes.find(s) != Datatypes.end();
 }
 
