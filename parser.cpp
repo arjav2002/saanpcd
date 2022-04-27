@@ -146,27 +146,13 @@ TreeSymbol *parse(vector<Token> &program)
     ifs.close();
     stack<StackSymbol *> stk;
     stk.push(new StackSymbol(0));
-<<<<<<< Updated upstream
-=======
-    // stk.push(new StackSymbol("$", ""));
->>>>>>> Stashed changes
     int c = 0;
     std::string lookup;
     while (c < program.size())
     {
         if (stk.top()->is_state)
         {
-<<<<<<< Updated upstream
-            lookup = parse_table[stk.top()->state+1][m[tokenToTerminal(program[c])]];
-=======
-            // cout << "is state" << endl;
             lookup = parse_table[stk.top()->state + 1][m[tokenToTerminal(program[c])]];
-            // cout << tokenToString(program[c].token_type) << endl;
-            // cout << program[c].token_name << endl;
-            // cout << tokenToTerminal(program[c]) << endl;
-            // cout << m[tokenToTerminal(program[c])] << endl;
-            // cout << stk.top()->state+1 << endl;
->>>>>>> Stashed changes
             assert(lookup != "x");
             if (lookup[0] == 's')
             {
@@ -281,39 +267,31 @@ void initVarList(TreeSymbol *lhs)
     lhs->varnames.push_back(lhs->kids[0]->value);
 }
 
-<<<<<<< Updated upstream
-void appendToVarList(TreeSymbol *lhs) {
+void appendToVarList(TreeSymbol *lhs)
+{
     lhs->varnames = lhs->kids[0]->varnames;
     lhs->kids[0]->varnames.clear();
     lhs->varnames.push_back(lhs->kids[2]->value);
 }
 
-void initDtypeList(TreeSymbol *lhs) {
+void initDtypeList(TreeSymbol *lhs)
+{
     lhs->dtypes.push_back(lhs->kids[0]->dtype);
 }
 
-void appendDtypeListFromThirdKid(TreeSymbol *lhs) {
+void appendDtypeListFromThirdKid(TreeSymbol *lhs)
+{
     lhs->dtypes = lhs->kids[0]->dtypes;
     lhs->kids[0]->dtypes.clear();
     lhs->dtypes.push_back(lhs->kids[2]->dtype);
 }
 
-void declareVariables(TreeSymbol *lhs) {
-    for(string varname : lhs->kids[1]->varnames) {
-        if(variableTable.top().find(varname) != variableTable.top().end()) {
-=======
-void appendToVarList(TreeSymbol *lhs)
-{
-    lhs->varnames.push_back(lhs->kids[2]->value);
-}
-
 void declareVariables(TreeSymbol *lhs)
 {
-    for (string varname : lhs->varnames)
+    for (string varname : lhs->kids[1]->varnames)
     {
         if (variableTable.top().find(varname) != variableTable.top().end())
         {
->>>>>>> Stashed changes
             cout << "Variable " << varname << " has been redeclared in scope level " << variableTable.size() << endl;
             assert(variableTable.top().find(varname) == variableTable.top().end());
         }
@@ -321,27 +299,17 @@ void declareVariables(TreeSymbol *lhs)
     }
 }
 
-<<<<<<< Updated upstream
-tuple<DataType, int> getVarDtype(string v) {
-    bool found = false;
-    stack<map<string, tuple<DataType, int>>> tmp;
-    tuple<DataType, int> toRet;
-    while(variableTable.size()) {
-        auto currScope = variableTable.top();
-
-        if(currScope.find(v) != currScope.end()) {
-=======
-void setDtypeFromFirstKidVarSymbolTable(TreeSymbol *lhs)
+tuple<DataType, int> getVarDtype(string v)
 {
     bool found = false;
     stack<map<string, tuple<DataType, int>>> tmp;
+    tuple<DataType, int> toRet;
     while (variableTable.size())
     {
         auto currScope = variableTable.top();
 
-        if (currScope.find(lhs->kids[0]->value) != currScope.end())
+        if (currScope.find(v) != currScope.end())
         {
->>>>>>> Stashed changes
             found = true;
             toRet = currScope[v];
             break;
@@ -355,21 +323,17 @@ void setDtypeFromFirstKidVarSymbolTable(TreeSymbol *lhs)
         tmp.pop();
     }
 
-<<<<<<< Updated upstream
-    if(!found) {
-        cout << "Variable " << v << " not found in any scope" << endl;
-=======
     if (!found)
     {
-        cout << "Variable " << lhs->kids[0]->value << " not found in any scope" << endl;
->>>>>>> Stashed changes
+        cout << "Variable " << v << " not found in any scope" << endl;
         assert(found);
     }
 
     return toRet;
 }
 
-void setDtypeFromFirstKidVarSymbolTable(TreeSymbol *lhs) {
+void setDtypeFromFirstKidVarSymbolTable(TreeSymbol *lhs)
+{
     lhs->dtype = getVarDtype(lhs->kids[0]->value);
 }
 
@@ -397,30 +361,24 @@ void pushNewScope(TreeSymbol *lhs)
     functionTable.push(map<string, pair<vector<tuple<DataType, int>>, vector<tuple<DataType, int>>>>());
 }
 
-<<<<<<< Updated upstream
-void setUpScope(TreeSymbol *lhs) {
+void setUpScope(TreeSymbol *lhs)
+{
     pair<vector<tuple<DataType, int>>, vector<tuple<DataType, int>>> args;
     args.first = lhs->kids[3]->dtypes;
     args.second = lhs->kids[3]->dtypes2;
     string fname = lhs->kids[1]->value;
 
-    if(functionTable.top().find(fname) != functionTable.top().end()) {
+    if (functionTable.top().find(fname) != functionTable.top().end())
+    {
         cout << "Function with name " << fname << " already exists in the current scope" << endl;
         assert(functionTable.top().find(fname) == functionTable.top().end());
     }
     functionTable.top()[fname] = args;
     pushNewScope(lhs);
     functionTable.top()[fname] = args;
-    for(int i = 0; i < lhs->kids[3]->dtypes.size(); i++) {
-        variableTable.top()[lhs->kids[3]->varnames[i]] = lhs->kids[3]->dtypes[i];
-=======
-void setUpScope(TreeSymbol *lhs)
-{
-    pushNewScope(lhs);
-    for (int i = 0; i < lhs->kids[0]->dtypes.size(); i++)
+    for (int i = 0; i < lhs->kids[3]->dtypes.size(); i++)
     {
-        variableTable.top()[lhs->kids[0]->varnames[i]] = lhs->kids[0]->dtypes[i];
->>>>>>> Stashed changes
+        variableTable.top()[lhs->kids[3]->varnames[i]] = lhs->kids[3]->dtypes[i];
     }
 }
 
@@ -446,72 +404,90 @@ void appendToRegParamList(TreeSymbol *lhs)
     lhs->dtypes.push_back(lhs->kids[2]->dtype);
 }
 
-<<<<<<< Updated upstream
-void multipleAssign(TreeSymbol *lhs) {
-    if(lhs->kids[0]->varnames.size() != lhs->kids[2]->dtypes.size()) {
+void multipleAssign(TreeSymbol *lhs)
+{
+    if (lhs->kids[0]->varnames.size() != lhs->kids[2]->dtypes.size())
+    {
         cout << "Unequal number of variables for assignment" << endl;
         assert(lhs->kids[0]->varnames.size() == lhs->kids[2]->dtypes.size());
     }
-    for(int i = 0; i < lhs->kids[0]->varnames.size(); i++) {
+    for (int i = 0; i < lhs->kids[0]->varnames.size(); i++)
+    {
         string x = lhs->kids[0]->varnames[i];
         auto dtype = getVarDtype(x);
-        if(dtype != lhs->kids[2]->dtypes[i]) {
+        if (dtype != lhs->kids[2]->dtypes[i])
+        {
             cout << "Attempt to assign " << get<0>(lhs->kids[2]->dtypes[i]) << " to " << x << " of type " << get<0>(dtype) << endl;
             assert(dtype == lhs->kids[2]->dtypes[i]);
         }
     }
 }
 
-void sendRegParamList(TreeSymbol *lhs) {
+void sendRegParamList(TreeSymbol *lhs)
+{
     lhs->varnames = lhs->kids[0]->varnames;
     lhs->dtypes = lhs->kids[0]->dtypes;
 }
 
-void sendOptParamList(TreeSymbol *lhs) {
+void sendOptParamList(TreeSymbol *lhs)
+{
     lhs->varnames2 = lhs->kids[0]->varnames;
     lhs->dtypes2 = lhs->kids[0]->dtypes;
 }
 
-void sendAllParamList(TreeSymbol *lhs) {
+void sendAllParamList(TreeSymbol *lhs)
+{
     lhs->varnames = lhs->kids[0]->varnames;
     lhs->dtypes = lhs->kids[0]->dtypes;
     lhs->varnames2 = lhs->kids[2]->varnames;
     lhs->dtypes2 = lhs->kids[2]->dtypes;
 }
 
-void sendFirstKidValue(TreeSymbol *lhs) {
+void sendFirstKidValue(TreeSymbol *lhs)
+{
     lhs->value = lhs->kids[0]->value;
 }
 
-void setDtypeListToFirstKid(TreeSymbol *lhs) {
+void setDtypeListToFirstKid(TreeSymbol *lhs)
+{
     lhs->dtypes = lhs->kids[0]->dtypes;
     lhs->kids[0]->dtypes.clear();
 }
 
-void functionCall(TreeSymbol *lhs) {
+void functionCall(TreeSymbol *lhs)
+{
     bool found = false;
-    
+
     stack<map<string, pair<vector<tuple<DataType, int>>, vector<tuple<DataType, int>>>>> tmp;
-    while(functionTable.size()) {
+    while (functionTable.size())
+    {
         auto x = functionTable.top().find(lhs->kids[0]->value);
-        if(x != functionTable.top().end()) {
+        if (x != functionTable.top().end())
+        {
             auto args = (*x).second;
-            if(args.first.size() <= lhs->kids[2]->dtypes.size()) {
+            if (args.first.size() <= lhs->kids[2]->dtypes.size())
+            {
                 bool ok = true;
-                for(int i = 0; i < args.first.size(); i++) {
-                    if(args.first[i] != lhs->kids[2]->dtypes[i]) {
+                for (int i = 0; i < args.first.size(); i++)
+                {
+                    if (args.first[i] != lhs->kids[2]->dtypes[i])
+                    {
                         ok = false;
                         break;
                     }
                 }
-                if(ok && lhs->kids[2]->dtypes.size()-args.first.size() <= args.second.size()) {
-                    for(int i = 0; i < lhs->kids[2]->dtypes.size()-args.first.size(); i++) {
-                        if(args.second[i] != lhs->kids[2]->dtypes[i + args.first.size()]) {
+                if (ok && lhs->kids[2]->dtypes.size() - args.first.size() <= args.second.size())
+                {
+                    for (int i = 0; i < lhs->kids[2]->dtypes.size() - args.first.size(); i++)
+                    {
+                        if (args.second[i] != lhs->kids[2]->dtypes[i + args.first.size()])
+                        {
                             ok = false;
                             break;
                         }
                     }
-                    if(ok) {
+                    if (ok)
+                    {
                         found = true;
                         break;
                     }
@@ -522,41 +498,44 @@ void functionCall(TreeSymbol *lhs) {
         functionTable.pop();
     }
 
-    while(tmp.size()) {
+    while (tmp.size())
+    {
         functionTable.push(tmp.top());
         tmp.pop();
     }
 
-    if(!found) {
+    if (!found)
+    {
         cout << "function with name " << lhs->kids[0]->value << " either nonexistent or called with wrong signature" << endl;
         cout << "Call signature: ";
-        for(auto x : lhs->kids[2]->dtypes) {
-            cout << get<0>(x) <<  " ";
+        for (auto x : lhs->kids[2]->dtypes)
+        {
+            cout << get<0>(x) << " ";
         }
         cout << endl;
         assert(found);
     }
 }
 
-void checkArithmeticOp(TreeSymbol *lhs) {
+void checkArithmeticOp(TreeSymbol *lhs)
+{
     DataType d = get<0>(lhs->kids[0]->dtype);
     DataType toSet = INT;
     assert(d == INT || d == FLOAT);
-    if(d == FLOAT) toSet = FLOAT;
+    if (d == FLOAT)
+        toSet = FLOAT;
     assert(get<1>(lhs->kids[0]->dtype) == 0);
     d = get<0>(lhs->kids[2]->dtype);
     assert(d == INT || d == FLOAT);
-    if(d == FLOAT) toSet = FLOAT;
+    if (d == FLOAT)
+        toSet = FLOAT;
     assert(get<1>(lhs->kids[2]->dtype) == 0);
     get<0>(lhs->dtype) = toSet;
     get<1>(lhs->dtype) = 0;
 }
 
-void setSemanticRules(vector<Production>& productions) {
-=======
 void setSemanticRules(vector<Production> &productions)
 {
->>>>>>> Stashed changes
     productions[10].afterSemanticParse = declareVariables;
     productions[11].afterSemanticParse = initVarList;
     productions[12].afterSemanticParse = appendToVarList;
