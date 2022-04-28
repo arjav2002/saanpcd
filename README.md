@@ -110,7 +110,7 @@ loop (x < 10)
 
 # Testing
 
-To run the lexer, open Command Prompt in Windows and enter
+To run the compiler, open Command Prompt in Windows and enter
 
 ```Batch
 .\saanpcd.bat <source_code>
