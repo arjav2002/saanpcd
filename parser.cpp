@@ -850,6 +850,23 @@ void assignIterable(TreeSymbol *lhs)
     assert(get<1>(expdt) == get<1>(dt) - 1);
     assert(get<0>(expdt) == get<0>(dt));
     assert(get<0>(lhs->kids[2]->dtype) == INT && get<1>(lhs->kids[2]->dtype) == 0);
+
+    stringstream ss;
+    int offset = tempNo++;
+    int address = tempNo++;
+
+    if(lhs->kids[2]->tmpNo != -1) ss << lhs->kids[2]->code;
+    if(lhs->kids[5]->tmpNo != -1) ss << lhs->kids[5]->code;
+    stringstream ss;
+    ss << lhs->kids[2]->tmpNo;
+    string tmpno1 = ss.str();
+    stringstream ss2;
+    ss2 << lhs->kids[5]->tmpNo;
+    string tmpno2 = ss2.str();
+
+    ss << "t" << offset << " = " << (lhs->kids[2]->tmpNo != -1 ? "t"+tmpno1 : lhs->kids[2]->code) << " * sizeof(element of t" << lhs->kids[2]->tmpNo << ")\n";
+    ss << "t" << address << " = " << lhs->kids[0]->value << lhs->kids[0]->scope << " + t" << offset << "\n";
+    ss << "@t" << address << " = " << (lhs->kids[5]->tmpNo != -1 ? "t"+tmpno2 : lhs->kids[5]->code) << "\n";
 }
 
 void checkIterableLiteral(TreeSymbol *lhs)
@@ -1075,11 +1092,22 @@ void indexArrAndGenArrCode(TreeSymbol *exp1) {
     get<0>(exp1->dtype) = get<0>(exp1->kids[0]->dtype);
     get<1>(exp1->dtype) = get<1>(exp1->kids[0]->dtype)-1;
     stringstream ss;
+
+    if(exp1->kids[2]->tmpNo != -1) ss << exp1->kids[2]->code;
+    if(exp1->kids[0]->tmpNo != -1) ss << exp1->kids[0]->code;
+
+    stringstream tmp1, tmp2;
+    tmp1 << exp1->kids[0]->tmpNo;
+    tmp2 << exp1->kids[2]->tmpNo;
+    string tmpno1, tmpno2;
+    tmpno1 = tmp1.str();
+    tmpno2 = tmp2.str();
+
     int offset = tempNo++;
     int address = tempNo++;
     int derefValue = tempNo++;
-    ss << "t" << offset << " = t" << exp1->kids[2]->tmpNo << " * sizeof(element of t" << exp1->kids[2]->tmpNo << ")\n";
-    ss << "t" << address << " = t" << exp1->kids[0]->tmpNo << " + t" << offset << "\n";
+    ss << "t" << offset << " = " << (exp1->kids[2]->tmpNo != -1 ? "t"+tmpno2 : exp1->kids[2]->code) << " * sizeof(element of t" << exp1->kids[2]->tmpNo << ")\n";
+    ss << "t" << address << " = " << (exp1->kids[0]->tmpNo != -1 ? "t"+tmpno2 : exp1->kids[0]->code) << " + t" << offset << "\n";
     ss << "t" << derefValue << " = @t" << address << "\n";
     exp1->tmpNo = derefValue;
 }
