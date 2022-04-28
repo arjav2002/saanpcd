@@ -1,4 +1,4 @@
-int f(int x)
+float f(int x)
 {
     float pi;
     pi = 3.141592653589793238462643383279502884197169399375105 ;
@@ -13,7 +13,7 @@ loop (l <= r)
     m = (l~r)/2 ;
     if((ab ~ f(m)) < max_diff)
     {
-	    return m ;
+	    //return m ;
     }
     else
     {

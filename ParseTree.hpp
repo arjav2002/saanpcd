@@ -16,6 +16,7 @@ struct TreeSymbol {
     TreeSymbol *parent;
     int parentIndex;
     int prodNo=-1;
+    int scope=0;
     std::vector<TreeSymbol*> kids;
     std::tuple<DataType, int> rtype;
     std::vector<std::string> varnames, varnames2;

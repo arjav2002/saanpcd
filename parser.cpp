@@ -386,6 +386,15 @@ void cleanUpScope(TreeSymbol *lhs)
 
 void pushNewScope(TreeSymbol *lhs)
 {
+    if(lhs->type == "loop_stmt" || lhs->type == "if_stmt") {
+        lhs->kids[5]->scope = lhs->scope+1;
+    }
+    else if(lhs->type == "cond") {
+        lhs->kids[4]->scope = lhs->scope+1;
+    }
+    else if(lhs->type == "elif_ladder" || lhs->type == "func_defn") {
+        lhs->kids[6]->scope = lhs->scope+1;
+    }
     variableTable.push(map<string, tuple<DataType, int>>());
     functionTable.push(map<string, tuple<tuple<DataType, int>, vector<tuple<string, DataType, int>>, vector<tuple<string, DataType, int>>>>());
 }
@@ -800,10 +809,45 @@ void setDtypeFirstSeventhKids(TreeSymbol *lhs) {
     lhs->kids[0]->dtype = lhs->kids[6]->dtype = lhs->dtype;
 }
 
+void increaseFirstKidScope(TreeSymbol *lhs) {
+    lhs->kids[0]->scope = lhs->scope+1;
+}
+
+void setFirstKidScope(TreeSymbol *lhs) {
+    lhs->kids[0]->scope = lhs->scope;
+}
+
+void setFirstKidScopeAndsetDtypeFirstKid(TreeSymbol *lhs) {
+    setFirstKidScope(lhs);
+    setDtypeFirstKid(lhs);
+}
+
+void setFirstTwoKidsScopeAndDtypeFirstKid(TreeSymbol *lhs) {
+    lhs->kids[0]->scope = lhs->kids[1]->scope = lhs->scope;
+    setDtypeFirstKid(lhs);
+}
+
+void setFirstKidScopeAndDtypeFirstKid(TreeSymbol *lhs) {
+    setFirstKidScope(lhs);
+    setDtypeFirstKid(lhs);
+}
+
+void setFirstKidScopeAndDtypeFirstSecondFifthKids(TreeSymbol *lhs) {
+    setFirstKidScope(lhs);
+    setDtypeFirstSecondFifthKids(lhs);
+}
+
+void setFirstKidScopeDtypeFirstSeventhKids(TreeSymbol *lhs) {
+    setFirstKidScope(lhs);
+    setDtypeFirstSeventhKids(lhs);
+}
+
 void setSemanticRules(vector<Production>& productions) {
-    productions[6].beforeSemanticParseChild[0] = setDtypeFirstKid;
+    productions[1].beforeSemanticParseChild[0] = setFirstKidScope;
+    productions[2].beforeSemanticParseChild[0] = setFirstKidScope;
+    productions[6].beforeSemanticParseChild[0] = setFirstKidScopeAndsetDtypeFirstKid;
     productions[8].beforeSemanticParseChild[0] = setDtypeFirstKid;
-    productions[9].beforeSemanticParseChild[0] = setDtypeFirstKid;
+    productions[9].beforeSemanticParseChild[0] = setFirstKidScopeAndsetDtypeFirstKid;
     productions[10].afterSemanticParse = declareVariables;
     productions[11].afterSemanticParse = initVarList;
     productions[12].afterSemanticParse = appendToVarList;
@@ -829,14 +873,18 @@ void setSemanticRules(vector<Production>& productions) {
     productions[28].beforeSemanticParseChild[3] = assertThirdKidIsBool;
     productions[28].beforeSemanticParseChild[5] = pushNewScope;
     productions[28].afterSemanticParse = cleanUpScope;
-    productions[29].beforeSemanticParseChild[0] = setDtypeFirstKid;
-    productions[30].beforeSemanticParseChild[0] = setDtypeFirstSecondFifthKids;
-    productions[32].beforeSemanticParseChild[0] = setDtypeFirstSeventhKids;
+    productions[29].beforeSemanticParseChild[0] = setFirstKidScopeAndDtypeFirstKid;
+    productions[30].beforeSemanticParseChild[0] = setFirstKidScopeAndDtypeFirstSecondFifthKids;
+    productions[30].beforeSemanticParseChild[4] = pushNewScope;
+    productions[30].afterSemanticParse = cleanUpScope;
+    productions[32].beforeSemanticParseChild[0] = setFirstKidScopeDtypeFirstSeventhKids;
+    productions[32].beforeSemanticParseChild[6] = pushNewScope;
+    productions[32].afterSemanticParse = cleanUpScope;
     productions[33].afterSemanticParse = assertReturnType;
     productions[34].afterSemanticParse = sendFirstKidValue;
     productions[35].beforeSemanticParseChild[5] = setUpScope;
     productions[35].afterSemanticParse = cleanUpScope;
-    productions[36].beforeSemanticParseChild[0] = setDtypeFirstKid;
+    productions[36].beforeSemanticParseChild[0] = setFirstTwoKidsScopeAndDtypeFirstKid;
     productions[36].beforeSemanticParseChild[1] = setDtypeSecondKid;
     productions[39].afterSemanticParse = sendRegParamList;
     productions[40].afterSemanticParse = sendOptParamList;
