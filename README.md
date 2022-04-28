@@ -113,7 +113,7 @@ loop (x < 10)
 To run the lexer, open Command Prompt in Windows and enter
 
 ```Batch
-.\dice <source_code>
+.\saanpcd.bat <source_code>
 ```
 
 The source code is in ASCII format and ends with the extension `*.saanp`
