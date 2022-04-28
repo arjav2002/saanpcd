@@ -857,9 +857,9 @@ void assignIterable(TreeSymbol *lhs)
 
     if(lhs->kids[2]->tmpNo != -1) ss << lhs->kids[2]->code;
     if(lhs->kids[5]->tmpNo != -1) ss << lhs->kids[5]->code;
-    stringstream ss;
-    ss << lhs->kids[2]->tmpNo;
-    string tmpno1 = ss.str();
+    stringstream ss1;
+    ss1 << lhs->kids[2]->tmpNo;
+    string tmpno1 = ss1.str();
     stringstream ss2;
     ss2 << lhs->kids[5]->tmpNo;
     string tmpno2 = ss2.str();
