@@ -153,6 +153,7 @@ TreeSymbol *parse(vector<Token> &program)
         if (stk.top()->is_state)
         {
             lookup = parse_table[stk.top()->state + 1][m[tokenToTerminal(program[c])]];
+            cout << stk.top()->state + 1 << " " << tokenToTerminal(program[c]) << " " << lookup << "\n";
             assert(lookup != "x");
             if (lookup[0] == 's')
             {
@@ -208,10 +209,12 @@ TreeSymbol *parse(vector<Token> &program)
                     break;
                 }
                 c++;
+                // cout << "shift\n";
                 stk.push(new StackSymbol(stoi(lookup.substr(1, lookup.size() - 1))));
             }
             else if (lookup[0] == 'r')
             {
+                // cout << "reduce\n";
                 int prodNo = stoi(lookup.substr(1, lookup.size() - 1));
                 Production p = productions[prodNo];
                 int toPop = p.rhs.size();
@@ -237,6 +240,11 @@ TreeSymbol *parse(vector<Token> &program)
                 }
                 stk.push(toPush);
             }
+            else if (lookup[0] == 'e')
+            {
+                cout << "Error: " << lookup << "\n";
+                c++;
+            }
             else if (lookup == "acc")
             {
                 c++;
@@ -249,6 +257,7 @@ TreeSymbol *parse(vector<Token> &program)
             stk.pop();
             std::string tmp2 = parse_table[stk.top()->state + 1][m[tmp->ts->type]];
             stk.push(tmp);
+            // cout << tmp2 << "\n";
             stk.push(new StackSymbol(stoi(tmp2)));
         }
     }
@@ -286,12 +295,14 @@ void initDtypeList(TreeSymbol *lhs)
     lhs->dtypes.push_back(lhs->kids[0]->dtype);
 }
 
-void setSingleKwarg(TreeSymbol *lhs) {
+void setSingleKwarg(TreeSymbol *lhs)
+{
     lhs->varnames2.push_back(lhs->kids[0]->value);
     lhs->dtypes2.push_back(lhs->kids[2]->dtype);
 }
 
-void setKwargs(TreeSymbol *lhs) {
+void setKwargs(TreeSymbol *lhs)
+{
     lhs->varnames2 = lhs->kids[0]->varnames2;
     lhs->kids[0]->varnames2.clear();
     lhs->varnames2.push_back(lhs->kids[2]->value);
@@ -341,7 +352,7 @@ tuple<DataType, int> getVarDtype(TreeSymbol *vname_identifier)
         {
             found = true;
             toRet = currScope[vname_identifier->value];
-            scope = variableTable.size()-1;
+            scope = variableTable.size() - 1;
             break;
         }
         tmp.push(variableTable.top());
@@ -389,35 +400,43 @@ void cleanUpScope(TreeSymbol *lhs)
 
 void pushNewScope(TreeSymbol *lhs)
 {
-    if(lhs->type == "loop_stmt" || lhs->type == "if_stmt") {
-        lhs->kids[5]->scope = lhs->scope+1;
+    if (lhs->type == "loop_stmt" || lhs->type == "if_stmt")
+    {
+        lhs->kids[5]->scope = lhs->scope + 1;
     }
-    else if(lhs->type == "cond") {
-        lhs->kids[4]->scope = lhs->scope+1;
+    else if (lhs->type == "cond")
+    {
+        lhs->kids[4]->scope = lhs->scope + 1;
     }
-    else if(lhs->type == "elif_ladder" || lhs->type == "func_defn") {
-        lhs->kids[6]->scope = lhs->scope+1;
+    else if (lhs->type == "elif_ladder" || lhs->type == "func_defn")
+    {
+        lhs->kids[6]->scope = lhs->scope + 1;
     }
     variableTable.push(map<string, tuple<DataType, int>>());
     functionTable.push(map<string, tuple<tuple<DataType, int>, vector<tuple<string, DataType, int>>, vector<tuple<string, DataType, int>>>>());
 }
 
-void setUpScope(TreeSymbol *lhs) {
+void setUpScope(TreeSymbol *lhs)
+{
     lhs->kids[6]->dtype = lhs->kids[0]->dtype;
     tuple<tuple<DataType, int>, vector<tuple<string, DataType, int>>, vector<tuple<string, DataType, int>>> args;
     get<0>(args) = lhs->kids[0]->dtype;
-    get<1>(args) = [lhs]() {
+    get<1>(args) = [lhs]()
+    {
         vector<tuple<string, DataType, int>> a;
         assert(lhs->kids[3]->varnames.size() == lhs->kids[3]->dtypes.size());
-        for(int i = 0; i < lhs->kids[3]->varnames.size(); i++) {
+        for (int i = 0; i < lhs->kids[3]->varnames.size(); i++)
+        {
             a.push_back(tuple<string, DataType, int>(lhs->kids[3]->varnames[i], get<0>(lhs->kids[3]->dtypes[i]), get<1>(lhs->kids[3]->dtypes[i])));
         }
         return a;
     }();
-    get<2>(args) = [lhs]() {
+    get<2>(args) = [lhs]()
+    {
         vector<tuple<string, DataType, int>> a;
         assert(lhs->kids[3]->varnames2.size() == lhs->kids[3]->dtypes2.size());
-        for(int i = 0; i < lhs->kids[3]->varnames2.size(); i++) {
+        for (int i = 0; i < lhs->kids[3]->varnames2.size(); i++)
+        {
             a.push_back(tuple<string, DataType, int>(lhs->kids[3]->varnames2[i], get<0>(lhs->kids[3]->dtypes2[i]), get<1>(lhs->kids[3]->dtypes2[i])));
         }
         return a;
@@ -464,12 +483,15 @@ void appendToRegParamList(TreeSymbol *lhs)
     lhs->dtypes.push_back(lhs->kids[2]->dtype);
 }
 
-TreeSymbol* getIthLeftRecursiveChild(TreeSymbol *varlist, int i) {
-    if(varlist->varnames.size() == 1) {
+TreeSymbol *getIthLeftRecursiveChild(TreeSymbol *varlist, int i)
+{
+    if (varlist->varnames.size() == 1)
+    {
         assert(i == 0);
         return varlist->kids[0];
-    } 
-    if(i == varlist->varnames.size()-1) return varlist->kids[2];
+    }
+    if (i == varlist->varnames.size() - 1)
+        return varlist->kids[2];
     return getIthLeftRecursiveChild(varlist->kids[0], i);
 }
 
@@ -524,33 +546,40 @@ void setDtypeListToFirstKid(TreeSymbol *lhs)
     lhs->kids[0]->dtypes.clear();
 }
 
-void inheritSecondDtypeList(TreeSymbol *lhs) {
+void inheritSecondDtypeList(TreeSymbol *lhs)
+{
     lhs->kids[0]->dtypes2 = lhs->dtypes2;
 }
 
-void inheritPartialSecondDtypeList(TreeSymbol *lhs) {
+void inheritPartialSecondDtypeList(TreeSymbol *lhs)
+{
     lhs->kids[0]->dtypes2 = lhs->dtypes2;
     lhs->kids[0]->dtypes2.pop_back();
 }
 
-void setSecondDtypeListToThirdKid(TreeSymbol *lhs) {
+void setSecondDtypeListToThirdKid(TreeSymbol *lhs)
+{
     lhs->kids[2]->dtypes2 = lhs->dtypes2;
 }
 
-void setFirstKidSecondDtypeList(TreeSymbol *lhs) {
+void setFirstKidSecondDtypeList(TreeSymbol *lhs)
+{
     lhs->kids[0]->dtypes2 = lhs->dtypes2;
 }
 
-void setSecondDtypeListToFirstKid(TreeSymbol *lhs) {
+void setSecondDtypeListToFirstKid(TreeSymbol *lhs)
+{
     lhs->dtypes2 = lhs->kids[0]->dtypes2;
     lhs->varnames2 = lhs->kids[0]->varnames2;
 }
 
-void setThirdKidSecondDtypeList(TreeSymbol *lhs) {
+void setThirdKidSecondDtypeList(TreeSymbol *lhs)
+{
     lhs->kids[2]->dtypes2 = lhs->kids[0]->dtypes2;
 }
 
-void setVarnamesAndAllDtypes(TreeSymbol *lhs) {
+void setVarnamesAndAllDtypes(TreeSymbol *lhs)
+{
     lhs->dtypes = lhs->kids[0]->dtypes;
     lhs->kids[0]->dtypes.clear();
     lhs->dtypes2 = lhs->kids[2]->dtypes2;
@@ -559,9 +588,12 @@ void setVarnamesAndAllDtypes(TreeSymbol *lhs) {
     lhs->kids[2]->varnames2.clear();
 }
 
-bool isArg(tuple<string, DataType, int> arg, vector<tuple<string, DataType, int>>& args) {
-    for(auto x: args) {
-        if(arg == x) return true;
+bool isArg(tuple<string, DataType, int> arg, vector<tuple<string, DataType, int>> &args)
+{
+    for (auto x : args)
+    {
+        if (arg == x)
+            return true;
     }
     return false;
 }
@@ -582,27 +614,33 @@ void functionCall(TreeSymbol *lhs)
             map<string, tuple<DataType, int>> argTypes;
 
             bool next = false;
-            for(int i = 0; i < lhs->kids[2]->dtypes.size(); i++) {
+            for (int i = 0; i < lhs->kids[2]->dtypes.size(); i++)
+            {
                 int j;
                 tuple<string, DataType, int> mappedArg;
-                if(i >= reqargs.size()) {
+                if (i >= reqargs.size())
+                {
                     j = i - reqargs.size();
-                    if(j >= optargs.size()) {
+                    if (j >= optargs.size())
+                    {
                         next = true;
                         break;
                     }
                     mappedArg = optargs[j];
                 }
-                else {
+                else
+                {
                     j = i;
                     mappedArg = reqargs[j];
                 }
-                if(argTypes.find(get<0>(mappedArg)) != argTypes.end()) {
+                if (argTypes.find(get<0>(mappedArg)) != argTypes.end())
+                {
                     next = true;
                     break;
                 }
                 tuple<DataType, int> dtype = lhs->kids[2]->dtypes[i];
-                if(get<0>(dtype) != get<1>(mappedArg) || get<1>(dtype) != get<2>(mappedArg)) {
+                if (get<0>(dtype) != get<1>(mappedArg) || get<1>(dtype) != get<2>(mappedArg))
+                {
                     next = true;
                     break;
                 }
@@ -610,38 +648,48 @@ void functionCall(TreeSymbol *lhs)
                 argTypes[get<0>(mappedArg)] = dtype;
             }
 
-            if(!next) {
-                for(int i = 0; i < lhs->kids[2]->dtypes2.size(); i++) {
+            if (!next)
+            {
+                for (int i = 0; i < lhs->kids[2]->dtypes2.size(); i++)
+                {
                     string keyword = lhs->kids[2]->varnames2[i];
-                    if(argTypes.find(keyword) != argTypes.end()) {
+                    if (argTypes.find(keyword) != argTypes.end())
+                    {
                         next = true;
                         break;
                     }
                     argTypes[keyword] = lhs->kids[2]->dtypes2[i];
                 }
 
-                if(!next) {
-                    for(tuple<string, DataType, int> arg : reqargs) {
-                        if(argTypes.find(get<0>(arg)) == argTypes.end()) {
+                if (!next)
+                {
+                    for (tuple<string, DataType, int> arg : reqargs)
+                    {
+                        if (argTypes.find(get<0>(arg)) == argTypes.end())
+                        {
                             next = true;
                             break;
                         }
                         tuple<DataType, int> dtype = argTypes[get<0>(arg)];
-                        if(get<1>(arg) != get<0>(dtype) || get<2>(arg) != get<1>(dtype)) {
+                        if (get<1>(arg) != get<0>(dtype) || get<2>(arg) != get<1>(dtype))
+                        {
                             next = true;
                             break;
                         }
                     }
-                    
-                    if(!next) {
-                        for(pair<string, tuple<DataType, int>> x : argTypes) {
-                            if(!isArg(tuple<string, DataType, int>(x.first, get<0>(x.second), get<1>(x.second)), reqargs)
-                            && !isArg(tuple<string, DataType, int>(x.first, get<0>(x.second), get<1>(x.second)), optargs)) {
+
+                    if (!next)
+                    {
+                        for (pair<string, tuple<DataType, int>> x : argTypes)
+                        {
+                            if (!isArg(tuple<string, DataType, int>(x.first, get<0>(x.second), get<1>(x.second)), reqargs) && !isArg(tuple<string, DataType, int>(x.first, get<0>(x.second), get<1>(x.second)), optargs))
+                            {
                                 next = true;
                                 break;
                             }
                         }
-                        if(!next) {
+                        if (!next)
+                        {
                             found = true;
                             lhs->dtype = get<0>(args);
                             break;
@@ -649,7 +697,6 @@ void functionCall(TreeSymbol *lhs)
                     }
                 }
             }
-
         }
         tmp.push(functionTable.top());
         functionTable.pop();
@@ -695,11 +742,13 @@ void checkArithmeticOp(TreeSymbol *lhs)
     get<1>(lhs->dtype) = 0;
 }
 
-void setDtypeToSecondKid(TreeSymbol *lhs) {
+void setDtypeToSecondKid(TreeSymbol *lhs)
+{
     lhs->dtype = lhs->kids[1]->dtype;
 }
 
-void assignArithmetic(TreeSymbol *lhs) {
+void assignArithmetic(TreeSymbol *lhs)
+{
     tuple<DataType, int> dt = getVarDtype(lhs->kids[0]);
     assert(get<1>(dt) == 0);
     assert(get<0>(dt) == INT || get<0>(dt) == FLOAT || get<0>(dt) == CHAR || get<0>(dt) == BOOL || get<0>(dt) == STRING);
@@ -708,7 +757,8 @@ void assignArithmetic(TreeSymbol *lhs) {
     assert(get<0>(expdt) == INT || get<0>(expdt) == FLOAT || get<0>(expdt) == CHAR || get<0>(expdt) == BOOL || get<0>(expdt) == STRING);
 }
 
-void assignBitwise(TreeSymbol *lhs) {
+void assignBitwise(TreeSymbol *lhs)
+{
     tuple<DataType, int> dt = getVarDtype(lhs->kids[0]);
     assert(get<1>(dt) == 0);
     assert(get<0>(dt) == INT || get<0>(dt) == FLOAT || get<0>(dt) == CHAR || get<0>(dt) == BOOL);
@@ -717,7 +767,8 @@ void assignBitwise(TreeSymbol *lhs) {
     assert(get<0>(expdt) == INT || get<0>(expdt) == FLOAT || get<0>(expdt) == CHAR || get<0>(expdt) == BOOL);
 }
 
-void assignBitshift(TreeSymbol *lhs) {
+void assignBitshift(TreeSymbol *lhs)
+{
     tuple<DataType, int> dt = getVarDtype(lhs->kids[0]);
     assert(get<1>(dt) == 0);
     assert(get<0>(dt) == INT || get<0>(dt) == FLOAT || get<0>(dt) == CHAR || get<0>(dt) == BOOL);
@@ -726,20 +777,24 @@ void assignBitshift(TreeSymbol *lhs) {
     assert(get<0>(expdt) == INT || get<0>(expdt) == CHAR || get<0>(expdt) == BOOL);
 }
 
-void assignIterable(TreeSymbol *lhs) {
+void assignIterable(TreeSymbol *lhs)
+{
     tuple<DataType, int> dt = getVarDtype(lhs->kids[0]);
     assert(get<1>(dt) > 0);
     assert(get<0>(dt) == INT || get<0>(dt) == FLOAT || get<0>(dt) == CHAR || get<0>(dt) == BOOL || get<0>(dt) == STRING);
     tuple<DataType, int> expdt = lhs->kids[5]->dtype;
-    assert(get<1>(expdt) == get<1>(dt)-1);
+    assert(get<1>(expdt) == get<1>(dt) - 1);
     assert(get<0>(expdt) == get<0>(dt));
     assert(get<0>(lhs->kids[2]->dtype) == INT && get<1>(lhs->kids[2]->dtype) == 0);
 }
 
-void checkIterableLiteral(TreeSymbol *lhs) {
+void checkIterableLiteral(TreeSymbol *lhs)
+{
     tuple<DataType, int> firstDtype = lhs->kids[1]->dtypes[0];
-    for(int i = 1; i < lhs->kids[1]->dtypes.size(); i++) {
-        if(firstDtype != lhs->kids[1]->dtypes[i]) {
+    for (int i = 1; i < lhs->kids[1]->dtypes.size(); i++)
+    {
+        if (firstDtype != lhs->kids[1]->dtypes[i])
+        {
             cout << "First dtype is " << get<0>(firstDtype) << " found " << get<0>(lhs->kids[1]->dtypes[i]) << " at index " << i << endl;
             assert(firstDtype == lhs->kids[1]->dtypes[i]);
         }
@@ -748,13 +803,15 @@ void checkIterableLiteral(TreeSymbol *lhs) {
     get<1>(lhs->dtype)++;
 }
 
-void setSecondKidDatatypeNumber(TreeSymbol *lhs) {
+void setSecondKidDatatypeNumber(TreeSymbol *lhs)
+{
     assert(get<0>(lhs->kids[1]->dtype) == INT || get<0>(lhs->kids[1]->dtype) == FLOAT || get<0>(lhs->kids[1]->dtype) == CHAR || get<0>(lhs->kids[1]->dtype) == BOOL);
     assert(get<1>(lhs->kids[1]->dtype) == 0);
     lhs->dtype = lhs->kids[1]->dtype;
 }
 
-void checkBitshift(TreeSymbol *lhs) {
+void checkBitshift(TreeSymbol *lhs)
+{
     assert(get<0>(lhs->kids[0]->dtype) == INT || get<0>(lhs->kids[0]->dtype) == FLOAT || get<0>(lhs->kids[0]->dtype) == CHAR || get<0>(lhs->kids[0]->dtype) == BOOL);
     assert(get<1>(lhs->kids[0]->dtype) == 0);
     assert(get<0>(lhs->kids[2]->dtype) == INT || get<0>(lhs->kids[2]->dtype) == CHAR || get<0>(lhs->kids[2]->dtype) == BOOL);
@@ -762,7 +819,8 @@ void checkBitshift(TreeSymbol *lhs) {
     lhs->dtype = lhs->kids[0]->dtype;
 }
 
-void checkBitwiseOp(TreeSymbol *lhs) {
+void checkBitwiseOp(TreeSymbol *lhs)
+{
     assert(get<0>(lhs->kids[0]->dtype) == INT || get<0>(lhs->kids[0]->dtype) == FLOAT || get<0>(lhs->kids[0]->dtype) == CHAR || get<0>(lhs->kids[0]->dtype) == BOOL);
     assert(get<1>(lhs->kids[0]->dtype) == 0);
     assert(get<0>(lhs->kids[2]->dtype) == INT || get<0>(lhs->kids[0]->dtype) == FLOAT || get<0>(lhs->kids[2]->dtype) == CHAR || get<0>(lhs->kids[2]->dtype) == BOOL);
@@ -770,7 +828,8 @@ void checkBitwiseOp(TreeSymbol *lhs) {
     lhs->dtype = lhs->kids[0]->dtype;
 }
 
-void checkLogicalOp(TreeSymbol *lhs) {
+void checkLogicalOp(TreeSymbol *lhs)
+{
     assert(get<0>(lhs->kids[0]->dtype) == BOOL);
     assert(get<1>(lhs->kids[0]->dtype) == 0);
     assert(get<0>(lhs->kids[2]->dtype) == BOOL);
@@ -778,18 +837,21 @@ void checkLogicalOp(TreeSymbol *lhs) {
     lhs->dtype = lhs->kids[0]->dtype;
 }
 
-void optParam(TreeSymbol *lhs) {
+void optParam(TreeSymbol *lhs)
+{
     lhs->dtype = lhs->kids[0]->dtype;
     lhs->value = lhs->kids[1]->value;
     assert(lhs->kids[3]->dtype == lhs->dtype);
 }
 
-void initOptParamList(TreeSymbol *lhs) {
+void initOptParamList(TreeSymbol *lhs)
+{
     lhs->varnames.push_back(lhs->kids[0]->value);
     lhs->dtypes.push_back(lhs->kids[0]->dtype);
 }
 
-void appendToOptParamList(TreeSymbol *lhs) {
+void appendToOptParamList(TreeSymbol *lhs)
+{
     lhs->varnames = lhs->kids[0]->varnames;
     lhs->kids[0]->varnames.clear();
     lhs->dtypes = lhs->kids[0]->dtypes;
@@ -798,64 +860,78 @@ void appendToOptParamList(TreeSymbol *lhs) {
     lhs->dtypes.push_back(lhs->kids[2]->dtype);
 }
 
-void assertReturnType(TreeSymbol *lhs) {
+void assertReturnType(TreeSymbol *lhs)
+{
     assert(lhs->dtype == lhs->kids[1]->dtype);
 }
 
-void setDtypeFirstKid(TreeSymbol *lhs) {
+void setDtypeFirstKid(TreeSymbol *lhs)
+{
     lhs->kids[0]->dtype = lhs->dtype;
 }
 
-void setDtypeSecondKid(TreeSymbol *lhs) {
+void setDtypeSecondKid(TreeSymbol *lhs)
+{
     lhs->kids[1]->dtype = lhs->dtype;
 }
 
-void setDtypeSixthKid(TreeSymbol *lhs) {
+void setDtypeSixthKid(TreeSymbol *lhs)
+{
     lhs->kids[5]->dtype = lhs->dtype;
 }
 
-void setDtypeFirstSecondFifthKids(TreeSymbol *lhs) {
+void setDtypeFirstSecondFifthKids(TreeSymbol *lhs)
+{
     lhs->kids[0]->dtype = lhs->kids[1]->dtype = lhs->kids[4]->dtype = lhs->dtype;
 }
 
-void setDtypeFirstSeventhKids(TreeSymbol *lhs) {
+void setDtypeFirstSeventhKids(TreeSymbol *lhs)
+{
     lhs->kids[0]->dtype = lhs->kids[6]->dtype = lhs->dtype;
 }
 
-void increaseFirstKidScope(TreeSymbol *lhs) {
-    lhs->kids[0]->scope = lhs->scope+1;
+void increaseFirstKidScope(TreeSymbol *lhs)
+{
+    lhs->kids[0]->scope = lhs->scope + 1;
 }
 
-void setFirstKidScope(TreeSymbol *lhs) {
+void setFirstKidScope(TreeSymbol *lhs)
+{
     lhs->kids[0]->scope = lhs->scope;
 }
 
-void setFirstKidScopeAndsetDtypeFirstKid(TreeSymbol *lhs) {
+void setFirstKidScopeAndsetDtypeFirstKid(TreeSymbol *lhs)
+{
     setFirstKidScope(lhs);
     setDtypeFirstKid(lhs);
 }
 
-void setFirstTwoKidsScopeAndDtypeFirstKid(TreeSymbol *lhs) {
+void setFirstTwoKidsScopeAndDtypeFirstKid(TreeSymbol *lhs)
+{
     lhs->kids[0]->scope = lhs->kids[1]->scope = lhs->scope;
     setDtypeFirstKid(lhs);
 }
 
-void setFirstKidScopeAndDtypeFirstKid(TreeSymbol *lhs) {
+void setFirstKidScopeAndDtypeFirstKid(TreeSymbol *lhs)
+{
     setFirstKidScope(lhs);
     setDtypeFirstKid(lhs);
 }
 
-void setFirstKidScopeAndDtypeFirstSecondFifthKids(TreeSymbol *lhs) {
+void setFirstKidScopeAndDtypeFirstSecondFifthKids(TreeSymbol *lhs)
+{
     setFirstKidScope(lhs);
     setDtypeFirstSecondFifthKids(lhs);
 }
 
-void setFirstKidScopeDtypeFirstSeventhKids(TreeSymbol *lhs) {
+void setFirstKidScopeDtypeFirstSeventhKids(TreeSymbol *lhs)
+{
     setFirstKidScope(lhs);
     setDtypeFirstSeventhKids(lhs);
 }
 
-void setSemanticRules(vector<Production>& productions) {
+void setSemanticRules(vector<Production> &productions)
+{
     productions[1].beforeSemanticParseChild[0] = setFirstKidScope;
     productions[2].beforeSemanticParseChild[0] = setFirstKidScope;
     productions[6].beforeSemanticParseChild[0] = setFirstKidScopeAndsetDtypeFirstKid;
