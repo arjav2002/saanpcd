@@ -1,7 +1,7 @@
 float c1;
 c1 = 42.0 ;
 int f1 ;
-f1 = 9*c1 ;
+//f1 = 9*c1 ;
 f1 /= 0x11 ;
 f1 #= 32 ;
 int f2 ;
@@ -11,4 +11,6 @@ c2 = f2*5 ;
 c2 /= 9 ;
 c2 ~= 32 ;
 char andok;
-andok = 0x69 ;
+//andok = 0x69 ;
+int[][] a;
+a{2} = (4, 3);
