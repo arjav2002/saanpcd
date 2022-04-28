@@ -12,11 +12,14 @@ enum DataType {
 struct TreeSymbol {
     std::string value;
     std::string type;
+    std::string code;
     std::tuple<DataType, int> dtype;
     TreeSymbol *parent;
     int parentIndex;
     int prodNo=-1;
     int scope=0;
+    int tmpNo=-1;
+    int lb=-1;
     std::vector<TreeSymbol*> kids;
     std::tuple<DataType, int> rtype;
     std::vector<std::string> varnames, varnames2;

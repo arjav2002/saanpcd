@@ -4,4 +4,6 @@ int f(int x=5) {
 	}
 	return x * f(x~1);
 }
+float a,b;
+a, b = 0.5, 3.2;
 f();

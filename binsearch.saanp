@@ -21,6 +21,9 @@ loop (l <= r)
 	    {
             r = m ~ 1 ;
         }
+        elif (f(m) < ab) {
+            r = m ~ 1;
+        }
 	    else
 	    {
             l = m # 1 ;
