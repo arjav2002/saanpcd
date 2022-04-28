@@ -867,6 +867,8 @@ void assignIterable(TreeSymbol *lhs)
     ss << "t" << offset << " = " << (lhs->kids[2]->tmpNo != -1 ? "t"+tmpno1 : lhs->kids[2]->code) << " * sizeof(element of t" << lhs->kids[2]->tmpNo << ")\n";
     ss << "t" << address << " = " << lhs->kids[0]->value << lhs->kids[0]->scope << " + t" << offset << "\n";
     ss << "@t" << address << " = " << (lhs->kids[5]->tmpNo != -1 ? "t"+tmpno2 : lhs->kids[5]->code) << "\n";
+
+    lhs->code = ss.str();
 }
 
 void checkIterableLiteral(TreeSymbol *lhs)
@@ -1110,6 +1112,7 @@ void indexArrAndGenArrCode(TreeSymbol *exp1) {
     ss << "t" << address << " = " << (exp1->kids[0]->tmpNo != -1 ? "t"+tmpno2 : exp1->kids[0]->code) << " + t" << offset << "\n";
     ss << "t" << derefValue << " = @t" << address << "\n";
     exp1->tmpNo = derefValue;
+    exp1->code = ss.str();
 }
 
 void initStmtCodeGen(TreeSymbol *stmt) {

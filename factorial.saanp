@@ -7,3 +7,5 @@ int f(int x=5) {
 float a,b;
 a, b = 0.5, 3.2;
 f();
+int[] arr;
+arr{2} = 5;
