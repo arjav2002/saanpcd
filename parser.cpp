@@ -278,7 +278,6 @@ void initVarList(TreeSymbol *lhs)
 void appendToVarList(TreeSymbol *lhs)
 {
     lhs->varnames = lhs->kids[0]->varnames;
-    lhs->kids[0]->varnames.clear();
     lhs->varnames.push_back(lhs->kids[2]->value);
 }
 
@@ -328,19 +327,21 @@ void declareVariables(TreeSymbol *lhs)
     }
 }
 
-tuple<DataType, int> getVarDtype(string v)
+tuple<DataType, int> getVarDtype(TreeSymbol *vname_identifier)
 {
     bool found = false;
     stack<map<string, tuple<DataType, int>>> tmp;
     tuple<DataType, int> toRet;
+    int scope;
     while (variableTable.size())
     {
         auto currScope = variableTable.top();
 
-        if (currScope.find(v) != currScope.end())
+        if (currScope.find(vname_identifier->value) != currScope.end())
         {
             found = true;
-            toRet = currScope[v];
+            toRet = currScope[vname_identifier->value];
+            scope = variableTable.size()-1;
             break;
         }
         tmp.push(variableTable.top());
@@ -354,16 +355,18 @@ tuple<DataType, int> getVarDtype(string v)
 
     if (!found)
     {
-        cout << "Variable " << v << " not found in any scope" << endl;
+        cout << "Variable " << vname_identifier->value << " not found in any scope" << endl;
         assert(found);
     }
+
+    vname_identifier->scope = scope;
 
     return toRet;
 }
 
 void setDtypeFromFirstKidVarSymbolTable(TreeSymbol *lhs)
 {
-    lhs->dtype = getVarDtype(lhs->kids[0]->value);
+    lhs->dtype = getVarDtype(lhs->kids[0]);
 }
 
 void checkRelationalOp(TreeSymbol *lhs)
@@ -461,6 +464,15 @@ void appendToRegParamList(TreeSymbol *lhs)
     lhs->dtypes.push_back(lhs->kids[2]->dtype);
 }
 
+TreeSymbol* getIthLeftRecursiveChild(TreeSymbol *varlist, int i) {
+    if(varlist->varnames.size() == 1) {
+        assert(i == 0);
+        return varlist->kids[0];
+    } 
+    if(i == varlist->varnames.size()-1) return varlist->kids[2];
+    return getIthLeftRecursiveChild(varlist->kids[0], i);
+}
+
 void multipleAssign(TreeSymbol *lhs)
 {
     if (lhs->kids[0]->varnames.size() != lhs->kids[2]->dtypes.size())
@@ -471,7 +483,8 @@ void multipleAssign(TreeSymbol *lhs)
     for (int i = 0; i < lhs->kids[0]->varnames.size(); i++)
     {
         string x = lhs->kids[0]->varnames[i];
-        auto dtype = getVarDtype(x);
+        cout << "Getting vname_identifier " << i << " from " << lhs->kids[0]->type << " of varnames size " << lhs->kids[0]->varnames.size() << endl;
+        auto dtype = getVarDtype(getIthLeftRecursiveChild(lhs->kids[0], i));
         if (dtype != lhs->kids[2]->dtypes[i] && !(get<0>(dtype) == FLOAT && get<0>(lhs->kids[2]->dtypes[i]) == INT))
         {
             cout << "Attempt to assign " << get<0>(lhs->kids[2]->dtypes[i]) << " to " << x << " of type " << get<0>(dtype) << endl;
@@ -687,7 +700,7 @@ void setDtypeToSecondKid(TreeSymbol *lhs) {
 }
 
 void assignArithmetic(TreeSymbol *lhs) {
-    tuple<DataType, int> dt = getVarDtype(lhs->kids[0]->value);
+    tuple<DataType, int> dt = getVarDtype(lhs->kids[0]);
     assert(get<1>(dt) == 0);
     assert(get<0>(dt) == INT || get<0>(dt) == FLOAT || get<0>(dt) == CHAR || get<0>(dt) == BOOL || get<0>(dt) == STRING);
     tuple<DataType, int> expdt = lhs->kids[2]->dtype;
@@ -696,7 +709,7 @@ void assignArithmetic(TreeSymbol *lhs) {
 }
 
 void assignBitwise(TreeSymbol *lhs) {
-    tuple<DataType, int> dt = getVarDtype(lhs->kids[0]->value);
+    tuple<DataType, int> dt = getVarDtype(lhs->kids[0]);
     assert(get<1>(dt) == 0);
     assert(get<0>(dt) == INT || get<0>(dt) == FLOAT || get<0>(dt) == CHAR || get<0>(dt) == BOOL);
     tuple<DataType, int> expdt = lhs->kids[2]->dtype;
@@ -705,7 +718,7 @@ void assignBitwise(TreeSymbol *lhs) {
 }
 
 void assignBitshift(TreeSymbol *lhs) {
-    tuple<DataType, int> dt = getVarDtype(lhs->kids[0]->value);
+    tuple<DataType, int> dt = getVarDtype(lhs->kids[0]);
     assert(get<1>(dt) == 0);
     assert(get<0>(dt) == INT || get<0>(dt) == FLOAT || get<0>(dt) == CHAR || get<0>(dt) == BOOL);
     tuple<DataType, int> expdt = lhs->kids[2]->dtype;
@@ -714,7 +727,7 @@ void assignBitshift(TreeSymbol *lhs) {
 }
 
 void assignIterable(TreeSymbol *lhs) {
-    tuple<DataType, int> dt = getVarDtype(lhs->kids[0]->value);
+    tuple<DataType, int> dt = getVarDtype(lhs->kids[0]);
     assert(get<1>(dt) > 0);
     assert(get<0>(dt) == INT || get<0>(dt) == FLOAT || get<0>(dt) == CHAR || get<0>(dt) == BOOL || get<0>(dt) == STRING);
     tuple<DataType, int> expdt = lhs->kids[5]->dtype;

@@ -32,7 +32,7 @@ elif_ladder -> ''
 elif_ladder -> elif_ladder elif ( exp ) { stmt_list }
 return_stmt -> return exp ;
 fname -> vname_identifier
-func_defn -> ftype_terminal fname ( param_list )
+func_defn -> ftype_terminal fname ( param_list ) { stmt_list }
 stmt_list -> stmt stmt_list
 stmt_list -> ''
 param_list -> ''
