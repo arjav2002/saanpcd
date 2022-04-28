@@ -881,6 +881,22 @@ void checkBitshift(TreeSymbol *lhs)
     assert(get<0>(lhs->kids[2]->dtype) == INT || get<0>(lhs->kids[2]->dtype) == CHAR || get<0>(lhs->kids[2]->dtype) == BOOL);
     assert(get<1>(lhs->kids[2]->dtype) == 0);
     lhs->dtype = lhs->kids[0]->dtype;
+
+    int t = tempNo++;
+    stringstream ss;
+    if(lhs->kids[0]->tmpNo != -1) ss << lhs->kids[0]->code << "\n";
+    if(lhs->kids[2]->tmpNo != -1) ss << lhs->kids[2]->code << "\n";
+    ss << "t" <<  t << " = ";
+    if(lhs->kids[0]->tmpNo != -1) ss << "t" << lhs->kids[0]->tmpNo;
+    else ss << lhs->kids[0]->code;
+
+    ss << " " << lhs->kids[1]->value << " ";
+
+    if(lhs->kids[1]->tmpNo != -1) ss << "t" << lhs->kids[2]->tmpNo;
+    else ss << lhs->kids[2]->code;
+    ss << "\n";
+    lhs->code = ss.str();
+    lhs->tmpNo = t;
 }
 
 void checkBitwiseOp(TreeSymbol *lhs)
@@ -890,6 +906,22 @@ void checkBitwiseOp(TreeSymbol *lhs)
     assert(get<0>(lhs->kids[2]->dtype) == INT || get<0>(lhs->kids[0]->dtype) == FLOAT || get<0>(lhs->kids[2]->dtype) == CHAR || get<0>(lhs->kids[2]->dtype) == BOOL);
     assert(get<1>(lhs->kids[2]->dtype) == 0);
     lhs->dtype = lhs->kids[0]->dtype;
+
+    int t = tempNo++;
+    stringstream ss;
+    if(lhs->kids[0]->tmpNo != -1) ss << lhs->kids[0]->code << "\n";
+    if(lhs->kids[2]->tmpNo != -1) ss << lhs->kids[2]->code << "\n";
+    ss << "t" <<  t << " = ";
+    if(lhs->kids[0]->tmpNo != -1) ss << "t" << lhs->kids[0]->tmpNo;
+    else ss << lhs->kids[0]->code;
+
+    ss << " " << lhs->kids[1]->value << " ";
+
+    if(lhs->kids[1]->tmpNo != -1) ss << "t" << lhs->kids[2]->tmpNo;
+    else ss << lhs->kids[2]->code;
+    ss << "\n";
+    lhs->code = ss.str();
+    lhs->tmpNo = t;
 }
 
 void checkLogicalOp(TreeSymbol *lhs)
@@ -899,6 +931,22 @@ void checkLogicalOp(TreeSymbol *lhs)
     assert(get<0>(lhs->kids[2]->dtype) == BOOL);
     assert(get<1>(lhs->kids[2]->dtype) == 0);
     lhs->dtype = lhs->kids[0]->dtype;
+
+    int t = tempNo++;
+    stringstream ss;
+    if(lhs->kids[0]->tmpNo != -1) ss << lhs->kids[0]->code << "\n";
+    if(lhs->kids[2]->tmpNo != -1) ss << lhs->kids[2]->code << "\n";
+    ss << "t" <<  t << " = ";
+    if(lhs->kids[0]->tmpNo != -1) ss << "t" << lhs->kids[0]->tmpNo;
+    else ss << lhs->kids[0]->code;
+
+    ss << " " << lhs->kids[1]->value << " ";
+
+    if(lhs->kids[1]->tmpNo != -1) ss << "t" << lhs->kids[2]->tmpNo;
+    else ss << lhs->kids[2]->code;
+    ss << "\n";
+    lhs->code = ss.str();
+    lhs->tmpNo = t;
 }
 
 void optParam(TreeSymbol *lhs)
